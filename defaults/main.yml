@@ -22,10 +22,15 @@ komodo_home: "/home/{{ komodo_user }}"
 komodo_bin_dir: "{{ komodo_home }}/.local/bin"
 komodo_bin_path: "{{ komodo_bin_dir }}/periphery"
 
+
 komodo_config_dir: "{{ komodo_home }}/.config/komodo"
+# default config template
+komodo_config_file_template: "periphery.config.toml.j2"
 komodo_config_path: "{{ komodo_config_dir }}/periphery.config.toml"
 
 komodo_service_dir: "{{ komodo_home }}/.config/systemd/user"
+# default service template
+komodo_service_file_template: "periphery.service.j2"
 komodo_service_path: "{{ komodo_service_dir }}/periphery.service"
 
 periphery_port: 8120
@@ -43,3 +48,5 @@ logging_opentelemetry_service_name: "Komodo-Periphery"
 komodo_bin_x86: "periphery-x86_64"
 komodo_bin_x86_legacy: "periphery"
 komodo_bin_aarch64: "periphery-aarch64"
+
+

@@ -53,7 +53,7 @@
 
 - name: Deploy configuration file
   ansible.builtin.template:
-    src: periphery.config.toml.j2
+    src: "{{ komodo_config_file_template }}"
     dest: "{{ komodo_config_path }}"
     mode: "0640"
     owner: "{{ komodo_user }}"
@@ -61,7 +61,7 @@
 
 - name: Deploy systemd user service file
   ansible.builtin.template:
-    src: periphery.service.j2
+    src: "{{ komodo_service_file_template }}"
     dest: "{{ komodo_service_path }}"
     mode: "0644"
     owner: "{{ komodo_user }}"
