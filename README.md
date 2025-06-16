@@ -124,7 +124,7 @@ playbook and control behavior with variables. Here is an example of doing it wit
       roles:
           - role: bpbradley.komodo
           komodo_action: "install"
-          komodo_version: "v1.18.1"
+          komodo_version: "v1.18.2"
           passkey: !vault |
               $ANSIBLE_VAULT;1.1;AES256
               65353234373130353539663661376563613539303866643963363830376661316638333139343366
@@ -160,7 +160,7 @@ playbook and control behavior with variables. Here is an example of doing it wit
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
     -e "komodo_action=update" \
-    -e "komodo_version=v1.18.1" \
+    -e "komodo_version=v1.18.2" \
     --vault-password-file .vault_pass
 
     ```
