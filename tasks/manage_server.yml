@@ -6,10 +6,22 @@
     - name: Set server address
       when: server_address
       ansible.builtin.set_fact:
-        _server_address: server_address
+        _server_address: "{{ server_address }}"
     - name: Detect route to Komodo Core
       when: not server_address
       block:
+        - name: Ensure packages for route detection are present
+          ansible.builtin.package:
+            name: 
+              - "{{ 'iproute' if ansible_os_family == 'RedHat' else 'iproute2' }}"
+              - gawk
+              - >-
+                {{ 'libc-bin' if ansible_os_family == 'Debian'
+                  else 'glibc' if ansible_os_family in ['RedHat','Alpine']
+                  else omit }}
+            state: present
+          become: true
+
         - name: Extract host from Komodo Core URL
           ansible.builtin.set_fact:
             _core_host: "{{ komodo_core_url | urlsplit('hostname') }}"
@@ -66,6 +78,8 @@
             server: "{{ server_name }}"
         status_code: [200, 500]
         return_content: yes
+      retries: 2
+      delay: 5
       register: probe
 
     - name: Update server in Komodo Core
@@ -87,6 +101,8 @@
               passkey: "{{ server_passkey }}"
         status_code: 200
         return_content: yes
+      retries: 2
+      delay: 5
 
     - name: Create server with Komodo Core
       when: probe.status == 500
@@ -107,3 +123,5 @@
               passkey: "{{ server_passkey }}"
         status_code: 200
         return_content: yes
+      retries: 2
+      delay: 5
