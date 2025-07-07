@@ -1,0 +1,22 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        "group:all"
+    ],
+    "customManagers": [
+        {
+            "customType": "regex",
+            "fileMatch": [
+                "defaults/main.yml$",
+                "README.md"
+            ],
+            "matchStrings": [
+                "komodo_version: [\"']?(?<currentValue>.+?)[\"']?\\s+",
+                "(?s)-e \"komodo_action=update\".*-e \"komodo_version=(?<currentValue>v?[0-9.]+)\""
+            ],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "moghtech/komodo"
+        }
+    ]
+}

@@ -6,7 +6,13 @@
 port = {{periphery_port}}
 repo_dir = "{{ repo_dir }}"
 stack_dir = "{{ stack_dir }}"
-stats_polling_rate = "{{ stacks_polling_rate }}"  
+stats_polling_rate = "{{ stacks_polling_rate }}"
+
+{#-- Only add bind_ip for Komodo >= v1.17.1 --#}
+{% if (komodo_version | regex_replace('^v', '')) is version('1.17.1', '>=') %}
+{{''}}
+bind_ip = "{{ komodo_bind_ip }}"
+{% endif %}
 
 # Docker CLI options
 legacy_compose_cli = false
@@ -18,7 +24,10 @@ legacy_compose_cli = false
 ssl_enabled = true
 
 allowed_ips = {{komodo_allowed_ips}}
+
+{% if passkey %}
 passkeys = ["{{ passkey }}"]
+{% endif %}
 
 ###########
 # Logging #

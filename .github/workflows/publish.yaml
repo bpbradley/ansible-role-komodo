@@ -1,0 +1,33 @@
+---
+
+name: Publish to Ansible Galaxy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'  # Trigger on tags starting with 'v'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  publish_role:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Ansible
+        run: |
+          pip install ansible
+
+      - name: Import role on Galaxy
+        run: |
+          ansible-galaxy role import bpbradley ansible-role-komodo --branch main --token $GALAXY_TOKEN
+        env:
+          GALAXY_TOKEN: ${{ secrets.ANSIBLE_GALAXY_TOKEN }}

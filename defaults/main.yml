@@ -1,10 +1,18 @@
-komodo_version: "v1.16.12"
-komodo_bin: "periphery-x86_64"
-komodo_bin_aarch64: "periphery-aarch64"
+komodo_version: "v1.18.4"
 
-# You should encrypt with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'` 
+# The user can override komodo_bin directly if desired
+komodo_bin: ""
+
+# You should encrypt with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
 # If encrypting, you must run with --ask-vault-pass or have a vault password file.
-passkey: 
+passkey:
+
+# New to v1.17.1 which introduces IPv6 support.
+# If you have issues, set `komodo_bind_ip` to `0.0.0.0`
+# to revert to previous behaviour.
+komodo_bind_ip: "[::]"
+
+# Replace with your komodo core IP if desired so that only core can access it
 komodo_allowed_ips: []
 
 komodo_user: "komodo"
@@ -14,10 +22,15 @@ komodo_home: "/home/{{ komodo_user }}"
 komodo_bin_dir: "{{ komodo_home }}/.local/bin"
 komodo_bin_path: "{{ komodo_bin_dir }}/periphery"
 
+
 komodo_config_dir: "{{ komodo_home }}/.config/komodo"
+# default config template
+komodo_config_file_template: "periphery.config.toml.j2"
 komodo_config_path: "{{ komodo_config_dir }}/periphery.config.toml"
 
 komodo_service_dir: "{{ komodo_home }}/.config/systemd/user"
+# default service template
+komodo_service_file_template: "periphery.service.j2"
 komodo_service_path: "{{ komodo_service_dir }}/periphery.service"
 
 periphery_port: 8120
@@ -30,4 +43,10 @@ ssl_enabled: true
 logging_level: "info"
 logging_stdio: "standard"
 logging_opentelemetry_service_name: "Komodo-Periphery"
+
+# These variables likely should not ever be changed.
+komodo_bin_x86: "periphery-x86_64"
+komodo_bin_x86_legacy: "periphery"
+komodo_bin_aarch64: "periphery-aarch64"
+
 

@@ -1,22 +1,38 @@
 ---
-- name: Check if {{ komodo_user }} user exists
-  command: id -u {{ komodo_user }}
+
+- name: Check if Komodo user exists
+  ansible.builtin.command: id -u {{ komodo_user }}
   register: komodo_user_check
-  failed_when: false   
-  changed_when: false  
+  failed_when: false
+  changed_when: false
 
 - name: Set komodo_user_exists fact
-  set_fact:
+  ansible.builtin.set_fact:
     komodo_user_exists: "{{ komodo_user_check.rc == 0 }}"
 
+# Choose binary_name based on user override, architecture, and version
+- name: Select Komodo binary
+  ansible.builtin.set_fact:
+    binary_name: >-
+      {%- if komodo_bin | length > 0 -%}
+        {{ komodo_bin }}
+      {%- elif ansible_architecture == 'aarch64' -%}
+        {{ komodo_bin_aarch64 }}
+      {%- else -%} {# x86_64 #}{%- if (komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
+          {{ komodo_bin_x86 }}
+      {%- else -%}
+          {{ komodo_bin_x86_legacy }}
+      {%- endif -%} {%- endif -%}
+  when: komodo_action == "install" or komodo_action == "update"
+
 - name: Include install tasks
-  import_tasks: install.yml
+  ansible.builtin.import_tasks: install.yml
   when: komodo_action == "install"
 
 - name: Include update tasks
-  import_tasks: update.yml
+  ansible.builtin.import_tasks: update.yml
   when: komodo_action == "update"
 
 - name: Include uninstall tasks
-  import_tasks: uninstall.yml
+  ansible.builtin.import_tasks: uninstall.yml
   when: komodo_action == "uninstall"

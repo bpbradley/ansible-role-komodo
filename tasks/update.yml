@@ -1,21 +1,22 @@
-
+---
 
 - name: Stop periphery service
-  shell: |
+  ansible.builtin.shell: |
     export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
     systemctl --user stop periphery || true
-  become: yes
+  become: true
   become_user: "{{ komodo_user }}"
+  changed_when: false
 
 - name: Remove old Komodo Periphery binary
-  file:
+  ansible.builtin.file:
     path: "{{ komodo_bin_path }}"
     state: absent
-  become: yes
+  become: true
   when: komodo_bin_path is defined
 
 - name: Ensure necessary directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: "{{ komodo_user }}"
@@ -27,59 +28,57 @@
     - "{{ komodo_service_dir }}"
 
 - name: Ensure SSL directory exists
-  file:
+  ansible.builtin.file:
     path: "/etc/komodo/ssl"
     state: directory
     owner: "{{ komodo_user }}"
     group: "{{ komodo_group }}"
     mode: "0750"
-  become: yes
+  become: true
   when: ssl_enabled | default(true)
 
 - name: Fail if unsupported architecture
-  fail:
+  ansible.builtin.fail:
     msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
   when: ansible_architecture not in ['x86_64', 'aarch64']
 
-- name: Set Komodo binary based on architecture
-  set_fact:
-    komodo_bin: "{{ komodo_bin if ansible_architecture == 'x86_64' else komodo_bin_aarch64 }}"
-
-- name: Download Komodo {{ komodo_version }} Periphery Agent
-  get_url:
-    url: "https://github.com/moghtech/komodo/releases/download/{{ komodo_version }}/{{ komodo_bin }}"
+- name: Download Komodo Periphery Agent
+  ansible.builtin.get_url:
+    url: "https://github.com/moghtech/komodo/releases/download/{{ komodo_version }}/{{ binary_name }}"
     dest: "{{ komodo_bin_path }}"
     mode: "0755"
     owner: "{{ komodo_user }}"
     group: "{{ komodo_group }}"
-    force: yes
+    force: true
 
 - name: Deploy configuration file
-  template:
-    src: periphery.config.toml.j2
+  ansible.builtin.template:
+    src: "{{ komodo_config_file_template }}"
     dest: "{{ komodo_config_path }}"
     mode: "0640"
     owner: "{{ komodo_user }}"
     group: "{{ komodo_group }}"
 
 - name: Deploy systemd user service file
-  template:
-    src: periphery.service.j2
+  ansible.builtin.template:
+    src: "{{ komodo_service_file_template }}"
     dest: "{{ komodo_service_path }}"
     mode: "0644"
     owner: "{{ komodo_user }}"
     group: "{{ komodo_group }}"
 
-- name: Reload systemd for {{ komodo_user }} user
-  shell: |
+- name: Reload systemd for Komodo user
+  ansible.builtin.shell: |
     export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
     systemctl --user daemon-reload
-  become: yes
+  become: true
   become_user: "{{ komodo_user }}"
+  changed_when: false
 
 - name: Restart periphery service after update
-  shell: |
+  ansible.builtin.shell: |
     export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
     systemctl --user restart periphery
-  become: yes
+  become: true
   become_user: "{{ komodo_user }}"
+  changed_when: false

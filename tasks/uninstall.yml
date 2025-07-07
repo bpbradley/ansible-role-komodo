@@ -1,19 +1,20 @@
 ---
 
 - name: Stop periphery service
-  shell: |
+  ansible.builtin.shell: |
     export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
     systemctl --user stop periphery || true
-  become: yes
+  become: true
   become_user: "{{ komodo_user }}"
+  changed_when: false
 
 - name: Disable lingering for komodo user
-  command: loginctl disable-linger {{ komodo_user }}
+  ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
   changed_when: false
   when: komodo_delete_user | default(false)
 
 - name: Remove komodo directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   with_items:
@@ -21,25 +22,26 @@
     - "{{ komodo_config_dir }}"
     - "{{ komodo_service_dir }}"
     - "/etc/komodo/ssl"
-  become: yes
+  become: true
 
 - name: Disable and remove periphery service
-  shell: |
+  ansible.builtin.shell: |
     export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
     systemctl --user disable periphery || true
     rm -f {{ komodo_service_path }}
-  become: yes
+  become: true
   become_user: "{{ komodo_user }}"
+  changed_when: false
 
 - name: Remove komodo user
-  user:
+  ansible.builtin.user:
     name: "{{ komodo_user }}"
     state: absent
-    remove: yes
-    force: yes
-  become: yes
+    remove: true
+    force: true
+  become: true
   when: komodo_delete_user | default(false)
 
 - name: Debug message after uninstall
-  debug:
+  ansible.builtin.debug:
     msg: "Uninstallation of {{ komodo_user }} completed successfully! (User removed: {{ komodo_delete_user | default(false) }})"
