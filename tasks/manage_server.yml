@@ -1,0 +1,109 @@
+---
+
+- name: Create Server with Komodo Core
+  when: enable_server_management
+  block:
+    - name: Set server address
+      when: server_address
+      ansible.builtin.set_fact:
+        _server_address: server_address
+    - name: Detect route to Komodo Core
+      when: not server_address
+      block:
+        - name: Extract host from Komodo Core URL
+          ansible.builtin.set_fact:
+            _core_host: "{{ komodo_core_url | urlsplit('hostname') }}"
+
+        - name: Resolve host address
+          ansible.builtin.command: getent ahosts {{ _core_host }}
+          register: host_lookup
+          changed_when: false
+          failed_when: false
+
+        - name: Pick first IPv4
+          ansible.builtin.set_fact:
+            _core_dest_ip: "{{ host_lookup.stdout_lines
+                        | select('match', '^[0-9]+\\.')
+                        | map('split') | map('first') | first | default('') }}"
+
+        - name: Fallback to default interface if something went wrong
+          ansible.builtin.set_fact:
+            detected_advertise_ip: "{{ ansible_default_ipv4.address }}"
+          when: _core_dest_ip == ""
+
+        - name: Determine source IP for routes to Komodo Core
+          block:
+            - name: Extract source ip
+              ansible.builtin.shell: >
+                ip -o route get {{ _core_dest_ip }} |
+                awk '{for(i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}'
+              register: src_ip
+              changed_when: false
+              failed_when: src_ip.rc != 0
+
+            - name: Set detected_advertise_ip fact
+              ansible.builtin.set_fact:
+                detected_advertise_ip: >-
+                  {{ src_ip.stdout | default(ansible_default_ipv4.address) }}
+
+        - name: Set server_address to detected URL
+          ansible.builtin.set_fact:
+            _server_address: >-
+              {{ (ssl_enabled | ternary('https', 'http'))
+                ~ '://' ~ detected_advertise_ip ~ ':' ~ periphery_port }}
+    
+    - name: Check for existing server on Komodo Core
+      ansible.builtin.uri:
+        url: "{{ komodo_core_url | trim('/') }}/read"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_core_api_key }}"
+          X-Api-Secret: "{{ komodo_core_api_secret }}"
+        body_format: json
+        body:
+          type: "GetServer"
+          params:
+            server: "{{ server_name }}"
+        status_code: [200, 500]
+        return_content: yes
+      register: probe
+
+    - name: Update server in Komodo Core
+      when: probe.status == 200
+      ansible.builtin.uri:
+        url: "{{ komodo_core_url | trim('/') }}/write"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_core_api_key }}"
+          X-Api-Secret: "{{ komodo_core_api_secret }}"
+        body_format: json
+        body:
+          type: "UpdateServer"
+          params:
+            id: "{{ probe.json['_id']['$oid'] }}"
+            config:
+              address: "{{ _server_address }}"
+              enabled: true
+              passkey: "{{ server_passkey }}"
+        status_code: 200
+        return_content: yes
+
+    - name: Create server with Komodo Core
+      when: probe.status == 500
+      ansible.builtin.uri:
+        url: "{{ komodo_core_url | trim('/') }}/write"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_core_api_key }}"
+          X-Api-Secret: "{{ komodo_core_api_secret }}"
+        body_format: json
+        body:
+          type: "CreateServer"
+          params:
+            name: "{{ server_name }}"
+            config:
+              address: "{{ _server_address }}"
+              enabled: true
+              passkey: "{{ server_passkey }}"
+        status_code: 200
+        return_content: yes

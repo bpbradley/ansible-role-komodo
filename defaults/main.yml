@@ -1,10 +1,11 @@
 komodo_version: "v1.18.4"
 
-# The user can override komodo_bin directly if desired
-komodo_bin: ""
-
-# You should encrypt with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
+# You should encrypt entries with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
 # If encrypting, you must run with --ask-vault-pass or have a vault password file.
+komodo_passkeys: []
+
+# For backwards compatibility before `komodo_passkeys`. This variable is a string
+# wheras `komodo_passkeys` is a list and so it can include more than one passkey
 passkey:
 
 # New to v1.17.1 which introduces IPv6 support.
@@ -15,13 +16,22 @@ komodo_bind_ip: "[::]"
 # Replace with your komodo core IP if desired so that only core can access it
 komodo_allowed_ips: []
 
+# Necessary if we want to enable automatic management of the periphery server in core
+enable_server_management: false
+komodo_core_url: ""
+komodo_core_api_key: ""
+komodo_core_api_secret: ""
+server_name: "{{ inventory_hostname }}" 
+server_address: "" # Leave blank to try and autodetect
+server_passkey: "" # Leave blank to use global passkeys in core configuration
+generate_server_passkey: false # Allow a generation of a random passkey
+
 komodo_user: "komodo"
 komodo_group: "komodo"
 
 komodo_home: "/home/{{ komodo_user }}"
 komodo_bin_dir: "{{ komodo_home }}/.local/bin"
 komodo_bin_path: "{{ komodo_bin_dir }}/periphery"
-
 
 komodo_config_dir: "{{ komodo_home }}/.config/komodo"
 # default config template
@@ -43,6 +53,9 @@ ssl_enabled: true
 logging_level: "info"
 logging_stdio: "standard"
 logging_opentelemetry_service_name: "Komodo-Periphery"
+
+# The user can override komodo_bin directly if desired
+komodo_bin: ""
 
 # These variables likely should not ever be changed.
 komodo_bin_x86: "periphery-x86_64"
