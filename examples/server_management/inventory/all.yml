@@ -35,6 +35,8 @@ all:
         komodo_core_api_secret: "some_api_secret" 
         # Default to allowing server management feature. Can be overriden
         enable_server_management: true
+        komodo_passkeys:
+          - passkey1
       children:
         core:
           hosts:
@@ -43,7 +45,7 @@ all:
               periphery_port: 8199
               # Can be an internal docker IP for example if on the same host
               # You can even make this static if needed in your compose file
-              # with `ipv4_address: 172.20.0.101` on its specified inetnal docker network
+              # with `ipv4_address: 172.20.0.101` on its specified internal docker network
               komodo_allowed_ips:
                 - "172.20.0.101"
               # Can manually set the server address instead of autodetecting route
@@ -67,16 +69,16 @@ all:
               # This host is specifying its name explicitly. The other hosts
               # will simply use their ansible inventory names
               server_name: "special-server"
-              # This is the conventional way to specify allowed IPs, with the
-              # IPv6 prefix. The other hosts are using the legacy method
-              # using komodo_bind_ip
+              # We aren't seeing a bind_ip so make sure to use the ipv6 prefix
+              # for ipv4 addresses.
               komodo_allowed_ips:
                 - "::ffff:10.1.10.4"
             komodo_host3:
               # This host will specify its own specific server passkey
               # This passkey can be encrypted with vault!
               server_passkey: some-secret-passkey
-              # We can either be explicit with the IP, or use our inventory to determine the IP if we want
+              # We can either be explicit with the IP, or use our
+              # inventory to determine the IP if we want
               komodo_allowed_ips:
                 - "{{ hostvars['komodo_host1'].ansible_host }}"
               # Can also be komodo_bind_ip: {{ ansible_host }} to be more specific

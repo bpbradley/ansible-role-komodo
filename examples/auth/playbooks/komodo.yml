@@ -1,0 +1,15 @@
+---
+- name: Manage Komodo Periphery Service
+  hosts: komodo
+  roles:
+    - role: bpbradley.komodo
+      # Default action / version. Can be overriden on command line with -e
+      komodo_action: "install"
+      komodo_version: "v1.18.3"
+      # These passkeys are used to authenticate with the komodo core instance
+      # If the komodo core server/instance does not provide these passkeys,
+      # then periphery will not be able to  communicate with it.
+      # Encrypt these with vault!
+      komodo_passkeys:
+        - passkey1
+        - passkey2
