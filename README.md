@@ -83,7 +83,7 @@ Some additional variables to tweak settings or override default behavior.
 Enabling passkey generation for unique periphery passkeys with `generate_server_passkey=true` is potentially valuable, but if doing so remember to *always* enable
 this feature whenever you update or install that server. For example, if you generated a random passkey on install, and then *DIDN'T* generate a random passkey
 or set a passkey on a future update, it would overwrite the passkey. If you generated a passkey on install, and then disabled server management entirely on updates,
-then you the role will have no knowledge of that generated passkey and it will not include that passkey in its allowed passkeys list, meaning you will lose connection.
+then the role will have no knowledge of that generated passkey and it will not include that passkey in its allowed passkeys list, meaning you will lose connection.
 
 Basically, the simple advice is to *ALWAYS* have `generate_server_passkey=true` or *ALWAYS* have `generate_server_passkey=false` for each server. I recommend setting
 these variables directly in an inventory file. See [`examples/server_management/inventory/all.yml`](./examples/server_management/inventory/all.yml) for an example.
@@ -97,7 +97,7 @@ periphery configuration and the systemd service file, respectively.
 
 Note that in doing so, the deployed files will be exactly as you specify, and they will always take precedence over any other specified variables.
 
-## Installation / Setup
+## Basic Installation / Setup
 
 1. `ansible-galaxy role install bpbradley.komodo`
 2. Create an `inventory/komodo.yml` file which specifies your komodo hosts and indicates the allowed_ips if desired
