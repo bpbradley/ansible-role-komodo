@@ -9,7 +9,7 @@
 - name: Set komodo_user_exists fact
   ansible.builtin.set_fact:
     komodo_user_exists: "{{ komodo_user_check.rc == 0 }}"
-  
+
 - name: Check for API credentials if using server management
   when: enable_server_management and not (
           komodo_core_url
@@ -31,7 +31,7 @@
       Setting a server passkey when `enable_server_management=false`.
       This is not a supported configuration, either enable server management,
       or explicitly add your server_passkey to the `komodo_passkeys` list.
-      
+
 - name: Resolve komodo_version
   when: komodo_action in ["install","update"]
   block:
@@ -57,13 +57,13 @@
             body_format: json
             headers:
               Content-Type: application/json
-              X-Api-Key:    "{{ komodo_core_api_key }}"
+              X-Api-Key: "{{ komodo_core_api_key }}"
               X-Api-Secret: "{{ komodo_core_api_secret }}"
             body:
-              type:   GetVersion
+              type: GetVersion
               params: {}
             status_code: 200
-            return_content: yes
+            return_content: true
             timeout: 15
           register: _core_version
 
@@ -71,7 +71,7 @@
           ansible.builtin.set_fact:
             _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
           changed_when: false
-      
+
     - name: Handle automatic versioning to latest
       when: komodo_version | lower == "latest"
       block:
@@ -80,7 +80,7 @@
             url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
             headers:
               Accept: application/vnd.github+json
-            return_content: yes
+            return_content: true
             status_code: 200
             timeout: 15
           register: _gh_release
@@ -94,7 +94,7 @@
       when: _komodo_version is not defined
       ansible.builtin.set_fact:
         _komodo_version: "{{ komodo_version }}"
-    
+
     - name: Display Komodo version
       ansible.builtin.debug:
         msg: "Using Komodo version: {{ _komodo_version }}"
@@ -126,9 +126,9 @@
             ) | unique
           }}
     - name: Generate a random passkey
-      when: enable_server_management and 
-            generate_server_passkey and 
-            not server_passkey 
+      when: enable_server_management and
+            generate_server_passkey and
+            not server_passkey
       ansible.builtin.set_fact:
         server_passkey: >-
           {{
