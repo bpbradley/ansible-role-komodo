@@ -1,0 +1,4 @@
+exclude_paths:
+  - examples/basic/playbooks/komodo.yml
+  - examples/auth/playbooks/komodo.yml
+  - examples/server_management/playbooks/komodo.yml
