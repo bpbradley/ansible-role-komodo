@@ -24,31 +24,46 @@ the numerous edge cases which appear when running it as a docker container.
 
 For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more details. Below are the only required variables if you are otherwise okay with defaults.
 
-| Variable                                  | Default                                         | Description                                                       |
-| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
-| **komodo\_action**                        | `None`                                          | `install`, `update`, or `uninstall`                               |
-| **komodo\_version**                       | `v1.18.4`                                       | Release tag of Komodo Periphery to deploy                         |
+| Variable                                  | Default               | Description                                                                       |
+| ----------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
+| **komodo\_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
+| **komodo\_version**                       | `v1.18.4`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
 
 ## Security / Authentication Variables
+
+These variables can be set to enforce authentication, SSL, or IP whitelists between
+periphery and Komodo Core. The only feature enabled by defaiut is ssl.
 
 | Variable                                  | Default                                         | Description                                                       |
 | ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
 | **komodo\_passkeys**                      | `[]`                                            | List of passkeys the server will accept                           |
 | **komodo\_bind\_ip**                      | `[::]`                                          | IP address the server binds to (`0.0.0.0` to force IPv4 only)     |
 | **komodo\_allowed\_ips**                  | `[]`                                            | IP list allowed to access periphery (empty list means all allowed)|
-| **ssl\_enabled**                          | `true`                                          | Enable HTTPS links in generated URLs when `true`                  |
+| **ssl\_enabled**                          | `true`                                          | Enable HTTPS between core/periphery when `true`                   |
+
+## API Credentials
+
+Some features, for example [automatic versioning](#automatic-versioning) and [server management](#server-management) require API credentials to be used.
+Features which rely on API credentials, when enabled, will give an error indicating that API credentials are needed if they weren't provided.
+Below are the needed credentials to access the Komodo API.
+
+The `komodo_core_url` is just the address needed to reach komodo from the target server, *which can be different for each server if needed*. 
+The remaining credentials API credentials are generated from within Komodo core in **Settings > Profile > New Api Key +**
+
+| Variable                       | Default                    | Description                                                                                     |
+| ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| **komodo\_core\_url**          | `""`                       | Base URL of the Komodo Core API (e.g. `https://komodo.example.com`)                             |
+| **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
+| **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
 
 ## Server Management
 
 When enabled and provided with API credentials / details, the role can automatically create and update servers for you. Including the ability to 
-set *per-periphery* passkeys, rather than using global ones. Currently, that ability can only be done via the API.
+set *per-periphery* passkeys, rather than using global ones. Currently, that ability can only be done via the API. In order to use this feature, you must provide valid [API Credentials](#api-credentials)
 
 | Variable                       | Default                    | Description                                                                                     |
 | ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
 | **enable\_server\_management** | `false`                    | Allows the role to create / update servers automatically in Komodo Core                         |
-| **komodo\_core\_url**          | `""`                       | Base URL of the Komodo Core API (e.g. `https://komodo.example.com`)                             |
-| **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
-| **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
 | **server\_name**               | `{{ inventory_hostname }}` | Name under which the server is registered in Core.                                              |
 | **server\_address**            | `""`                       | Public URL advertised to Core (auto-detected when blank)                                        |
 | **server\_passkey**            | `""`                       | Passkey specific to this server (merges with `komodo_passkeys` for periphery deployment.        |
@@ -78,23 +93,25 @@ Some additional variables to tweak settings or override default behavior.
 | **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
 | **logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
 
+### Automatic Versioning
+
+Set `komodo_version` to `latest` to determine the latest release from GitHub and install that. You can also specify `komodo_version=core` and the role will
+request the currently installed version on Komodo Core, and install the matching version. In order to use `core`, you must also provide valid [API Credentials](#api-credentials)
+
 ### Note on Generated Passkeys
 
 Enabling passkey generation for unique periphery passkeys with `generate_server_passkey=true` is potentially valuable, but if doing so remember to *always* enable
-this feature whenever you update or install that server. 
+this feature whenever you update or install that server. The generated passkey is not saved, it is used to configure periphery at the time of install and then thrown away.
 
-For example, if you generated a random passkey on install, and then *DIDN'T* generate a random passkey
-or set a passkey on a future update, it would not have a server passkey to provide to the server, and it will update it with no passkey. 
-
-Further, if you generated a passkey on install, and then disabled server management entirely on updates,
-then the role will have no knowledge of that generated passkey and it will not include that passkey in its allowed passkeys list, meaning you may be using
-no passkey at all. 
+So for example, if you generated a random passkey on `install`, and then *DIDN'T* generate or set a passkey
+on a future `update`, the role will not have knowledge of a server passkey at all, and it will simply delete the randomly generated one that was previously provided,
+and it will not enforce passkey authentication, which is likely not the desired behavior. 
 
 Basically, the simple advice is to *ALWAYS* have `generate_server_passkey=true` or *ALWAYS* have `generate_server_passkey=false` for each server. I recommend setting
 these variables directly in an inventory file. See [`examples/server_management/inventory/all.yml`](./examples/server_management/inventory/all.yml) for an example.
 
 If this is not preferred, you can always generate on install, and then record the generated passkeys and include that explicitly in your `komodo_passkeys` from thereon.
-Or you can of course just always set your own randomly generated `server_passkey`
+Or you can of course just always set your own randomly generated passkeys.
 
 ### Overriding default configuration templates
 
@@ -219,5 +236,3 @@ playbook and control behavior with variables. Here is an example of doing it wit
   1. Basic installation example with very little customization: [`examples/basic/README.md`](./examples/basic/README.md)
   2. Example using authentication with allowed IPs and global passkeys: [`examples/auth/README.md`](./examples/auth/README.md)
   3. Example showing server management functions and unique server passkeys: [`examples/server_management/README.md`](./examples/server_management/README.md)
-
-    
