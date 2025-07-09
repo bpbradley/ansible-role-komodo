@@ -1,0 +1,14 @@
+---
+- name: Manage Komodo Periphery Service
+  hosts: komodo
+  roles:
+    - role: bpbradley.komodo
+      # Default action / version. Can be overriden on command line with -e
+      komodo_action: "install"
+      komodo_version: "v1.18.3"
+      # We can specify some additional configurations to override defaults
+      # refer to the `defaults/main.yml` for more details
+      komodo_periphery_port: 8199
+      stacks_polling_rate: "10-sec"
+      logging_level: "debug"
+      logging_opentelemetry_service_name: "Komodo-Periphery-Example"

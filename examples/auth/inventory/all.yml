@@ -1,0 +1,57 @@
+# This example shows how you can setup some basic authentication features
+
+all:
+  # Here you can have your typical inventory configurations.
+  # Add additonal vars: section for ssh keyfiles, etc.
+  hosts:
+    komodo_host1:
+      ansible_host: 10.1.10.4
+    komodo_host2:
+      ansible_host: 10.1.10.5
+    komodo_host3:
+      ansible_host: 10.1.10.6
+    localhost:
+      ansible_host: localhost
+      connection: local
+  # Below we can create special komodo hosts, with komodo related variables
+  # set so that each server might have its own particular behavior, or to
+  # just conveniently set some defaults.
+  children:
+    komodo:
+      children:
+        core:
+          hosts:
+            komodo_host1:
+              # We can set a different periphery port if we want
+              periphery_port: 8199
+              # Can be an internal docker IP for example if on the same host
+              # You can even make this static if needed in your compose file
+              # with `ipv4_address: 172.20.0.101` on its specified internal docker network
+              komodo_allowed_ips:
+                - "172.20.0.101"
+              # Can manually set the server address instead of autodetecting route
+              # In this case since we want to communicate to core through its docker IP,
+              # we can use host.docker.internal if we add
+              #     extra_hosts:
+              #      - host.docker.internal:host-gateway
+              # to our komodo core compose file.
+              server_address: https://host.docker.internal:{{ periphery_port }}
+              # We can bind to a particular interface, like the internal docker host gateway
+              # Can figure this out with docker network inspect bridge --format '{{ (index .IPAM.Config 0).Gateway }}'
+              # for example. Or check gateway for docker0 on your host, etc. But you should be able to get it
+              # automatically with ansible through {{ ansible_docker0.ipv4.address}}
+              komodo_bind_ip: "{{ ansible_docker0.ipv4.address}}"
+        periphery:
+          hosts:
+            komodo_host2:
+              # We aren't seeing a bind_ip here so make sure to use the ipv6 prefix
+              # for ipv4 addresses.
+              komodo_allowed_ips:
+                - "::ffff:10.1.10.4"
+            komodo_host3:
+              # We can either be explicit with the IP, or use our
+              # inventory to determine the IP if we want
+              komodo_allowed_ips:
+                - "{{ hostvars['komodo_host1'].ansible_host }}"
+              # Can also be komodo_bind_ip: {{ ansible_host }} to be more specific
+              komodo_bind_ip: 0.0.0.0

@@ -1,0 +1,10 @@
+# This is simple use case for deploying periphery with mostly default settings.
+
+all:
+  # Here you can have your typical inventory configurations.
+  # Add additonal vars: section for ssh keyfiles, etc.
+  hosts:
+    komodo_host1:
+      ansible_host: 10.1.10.4
+    komodo_host2:
+      ansible_host: 10.1.10.5

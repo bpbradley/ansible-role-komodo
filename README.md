@@ -18,42 +18,77 @@ the numerous edge cases which appear when running it as a docker container.
 1. **Install** the Komodo Periphery agent, creating and sandboxing the `komodo` user.
 2. **Update** the Komodo Periphery agent by specifying a new version.
 3. **Uninstall** the Komodo Periphery agent, optionally removing the `komodo` user and home directories.
+4. **Manage Servers** in Komodo Core directly, so that you don't have to manually add/update them in core after deployment.
 
-## Role Variables
+## Required Role Variables
 
-Below are some key variables; see [`defaults/main.yml`](./defaults/main.yml) for more details:
+For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more details. Below are the only required variables if you are otherwise okay with defaults.
 
-> **Note for Komodo version v1.17.1+**
-[komodo 1.17.1](https://github.com/moghtech/komodo/releases/tag/v1.17.1) introduced a possible breaking change
-in order to support IPv6. You can update your `komodo_allowed_ips` to reflect the IPv6 translation.
-Otherwise, I have introduced a new variable to support this, `komodo_bind_ip`
-which you can set to `0.0.0.0` to return to the previous behavior. This can be easily set in the inventory
-files as shown in the below examples. [I have also included a migration guide below](#note-on-migration-to-v1171)
+| Variable                                  | Default                                         | Description                                                       |
+| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| **komodo\_action**                        | `None`                                          | `install`, `update`, or `uninstall`                               |
+| **komodo\_version**                       | `v1.18.4`                                       | Release tag of Komodo Periphery to deploy                         |
 
-- **`komodo_action`**  
-  - Controls which operation is performed:
-    - `"install"`: Installs the agent fresh
-    - `"update"`: Updates the agent to a new version
-    - `"uninstall"`: Removes the agent (with optional user removal)
-  - *No default*: If unset, the role won’t perform these tasks.
+## Security / Authentication Variables
 
-- **`komodo_version`**  
-  - The version of Komodo Periphery to install or update.
-  
-- **`passkey`**  
-  - This must match the passkey set for your Komodo Core install
-  - I recommend encrypting with vault (i.e. `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`)
+| Variable                                  | Default                                         | Description                                                       |
+| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| **komodo\_passkeys**                      | `[]`                                            | List of passkeys the server will accept                           |
+| **komodo\_bind\_ip**                      | `[::]`                                          | IP address the server binds to (`0.0.0.0` to force IPv4 only)     |
+| **komodo\_allowed\_ips**                  | `[]`                                            | IP list allowed to reach the periphery API                        |
+| **ssl\_enabled**                          | `true`                                          | Enable HTTPS links in generated URLs when `true`                  |
 
-- **`komodo_allowed_ips`**  
-  - You should set this to the host IP of Komodo Core, `127.0.0.1` For example, create a host file with the komodo_allowed_ips set there
+## Server Management
 
-- **`komodo_bind_ip`**
-  - New feature to [komodo 1.17.1](https://github.com/moghtech/komodo/releases/tag/v1.17.1) -- this allows IPv6 support in periphery. Playbook will use the default komodo behavior, but it can be overriden to the legacy behavior by setting `komodo_bind_ip` to `0.0.0.0`
+When enabled and provided with API credentials / details, the role can automatically create and update servers for you. Including the ability to 
+set *per-periphery* passkeys, rather than using global ones. Currently, that ability can only be done via the API.
 
-The remaining variables in [`defaults/main.yml`](./defaults/main.yml) are set to sensible values, but you should
-review them and set according to your own needs
+| Variable                       | Default                    | Description                                                                                     |
+| ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| **enable\_server\_management** | `false`                    | Allows the role to create / update servers automatically in Komodo Core                         |
+| **komodo\_core\_url**          | `""`                       | Base URL of the Komodo Core API (e.g. `https://komodo.example.com`)                             |
+| **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
+| **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
+| **server\_name**               | `{{ inventory_hostname }}` | Name under which the server is registered in Core.                                              |
+| **server\_address**            | `""`                       | Public URL advertised to Core (auto-detected when blank)                                        |
+| **server\_passkey**            | `""`                       | Passkey specific to this server (merges with `komodo_passkeys` for periphery deployment.        |
+| **generate\_server\_passkey**  | `false`                    | Generate a random passkey ([See below for special notes on this](#note-on-generated-passkeys) ) |
 
-## Overriding default configuration templates
+## Additional Variables
+
+Some additional variables to tweak settings or override default behavior.
+
+| Variable                                  | Default                                         | Description                                                       |
+| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| **komodo\_user**                          | `komodo`                                        | System user that owns files and runs the service                  |
+| **komodo\_group**                         | `komodo`                                        | Group that owns files and runs the service                        |
+| **komodo\_home**                          | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                   |
+| **komodo\_delete\_user**                  | `None`                                          | Only when `komodo_action=uninstall`, *deletes* `komodo_user`      |
+| **komodo\_config\_dir**                   | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                   |
+| **komodo\_config\_file\_template**        | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))    |
+| **komodo\_config\_path**                  | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                      |
+| **komodo\_service\_dir**                  | `{{ komodo_home }}/.config/systemd/user`        | Directory for systemd user-mode unit files                        |
+| **komodo\_service\_file\_template**       | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))    |
+| **komodo\_service\_path**                 | `{{ komodo_service_dir }}/periphery.service`    | Destination path of the rendered service file                     |
+| **periphery\_port**                       | `8120`                                          | TCP port the server listens on                                    |
+| **repo\_dir**                             | `{{ komodo_home }}/.komodo/repos`               | Default root for repository check-outs                            |
+| **stack\_dir**                            | `{{ komodo_home }}/.komodo/stacks`              | Default root for stack folders                                    |
+| **stacks\_polling\_rate**                 | `5-sec`                                         | Interval at which periphery polls the stack directory             |
+| **logging\_level**                        | `info`                                          | Periphery log level                                               |
+| **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
+| **logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
+
+### Note on Generated Passkeys
+
+Enabling passkey generation for unique periphery passkeys with `generate_server_passkey=true` is potentially valuable, but if doing so remember to *always* enable
+this feature whenever you update or install that server. For example, if you generated a random passkey on install, and then *DIDN'T* generate a random passkey
+or set a passkey on a future update, it would overwrite the passkey. If you generated a passkey on install, and then disabled server management entirely on updates,
+then the role will have no knowledge of that generated passkey and it will not include that passkey in its allowed passkeys list, meaning you will lose connection.
+
+Basically, the simple advice is to *ALWAYS* have `generate_server_passkey=true` or *ALWAYS* have `generate_server_passkey=false` for each server. I recommend setting
+these variables directly in an inventory file. See [`examples/server_management/inventory/all.yml`](./examples/server_management/inventory/all.yml) for an example.
+
+### Overriding default configuration templates
 
 In some cases, it may be desirable to have more control over the exact service files and/or configuration files deployed to each periphery node.
 In this case, the default / interpolated configurations and service files may not be ideal. These configurations can be overridden by manually providing
@@ -62,10 +97,7 @@ periphery configuration and the systemd service file, respectively.
 
 Note that in doing so, the deployed files will be exactly as you specify, and they will always take precedence over any other specified variables.
 
-For example, if you set a `passkey` or `komodo_bind_ip` variable manually, these will be overridden by the contents
-and behavior of your supplied `komodo_config_file_template`.
-
-## Installation / Setup
+## Basic Installation / Setup
 
 1. `ansible-galaxy role install bpbradley.komodo`
 2. Create an `inventory/komodo.yml` file which specifies your komodo hosts and indicates the allowed_ips if desired
@@ -88,18 +120,18 @@ and behavior of your supplied `komodo_config_file_template`.
 4. **Optional** but recommended. Set an encrypted passkey using `ansible-vault` which matches the passkey set in Komodo Core.
 
     ```sh
-    ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'
+    ansible-vault encrypt_string 'supersecretpasskey'
     ```
     You will get an output like this, which we will use later. 
 
     ```
-    passkey: !vault |
-            $ANSIBLE_VAULT;1.1;AES256
-            65353234373130353539663661376563613539303866643963363830376661316638333139343366
-            3563656637303235373336336131346338336634653232300a313736396336316330666237653237
-            64613231323433373637313462633863613732653136366462313134393938623136326633346166
-            3834333462333162310a313037306336613061313733363862633437376133316234326431633131
-            35386565333538623231643433396334323132616438353839663534373030393266
+    !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      65353234373130353539663661376563613539303866643963363830376661316638333139343366
+      3563656637303235373336336131346338336634653232300a313736396336316330666237653237
+      64613231323433373637313462633863613732653136366462313134393938623136326633346166
+      3834333462333162310a313037306336613061313733363862633437376133316234326431633131
+      35386565333538623231643433396334323132616438353839663534373030393266
     ```
 
     Note that you will need to now input the password you entered every time you run this role,
@@ -125,18 +157,15 @@ playbook and control behavior with variables. Here is an example of doing it wit
           - role: bpbradley.komodo
           komodo_action: "install"
           komodo_version: "v1.18.4"
-          passkey: !vault |
-              $ANSIBLE_VAULT;1.1;AES256
-              65353234373130353539663661376563613539303866643963363830376661316638333139343366
-              3563656637303235373336336131346338336634653232300a313736396336316330666237653237
-              64613231323433373637313462633863613732653136366462313134393938623136326633346166
-              3834333462333162310a313037306336613061313733363862633437376133316234326431633131
-              35386565333538623231643433396334323132616438353839663534373030393266
+          komodo_passkeys: 
+            - !vault |
+                $ANSIBLE_VAULT;1.1;AES256
+                65353234373130353539663661376563613539303866643963363830376661316638333139343366
+                3563656637303235373336336131346338336634653232300a313736396336316330666237653237
+                64613231323433373637313462633863613732653136366462313134393938623136326633346166
+                3834333462333162310a313037306336613061313733363862633437376133316234326431633131
+                35386565333538623231643433396334323132616438353839663534373030393266
     ```
-
-    Note that you can just enter a cleartext passkey here instead if not using the vault. This playbook will
-    default to install the latest version of komodo periphery (at the date of last publish, which will also
-    be reflected in this example playbook)
    
 6. Run the playbook
 
@@ -173,46 +202,14 @@ playbook and control behavior with variables. Here is an example of doing it wit
     -e "komodo_delete_user=true" \
     --vault-password-file .vault_pass
     ```
-### Note on Migration to v1.17.1+
 
-If you are v1.17.0 or earlier and using `komodo_allowed_ips`, and intend to update to 1.17.1, you will need to:
+  ## More Examples / Advanced Features
 
-1. Update to the latest version of this role `ansible-galaxy role install bpbradley.komodo --force`
-2. Migrate your inventory or playbooks to account for the new IPv6 translation, or set the `komodo_bind_ip` to `0.0.0.0` to revert to legacy behavior.
+  This guide only covers the basic information to get off the ground, but you can see more thorough examples
+  and explanations in the [`examples/`](./examples) section.
 
-  Example inventory file v1.17.0 and earlier
-  
-  ```yaml
-    komodo:
-        hosts:
-            komodo_periphery:
-                ansible_host: 192.168.10.21
-                komodo_allowed_ips:
-                    - "192.168.10.20"
-  ```
+  1. Basic installation example with very little customization: [`examples/basic/README.md`](./examples/basic/README.md)
+  2. Example using authentication with allowed IPs and global passkeys: [`examples/auth/README.md`](./examples/auth/README.md)
+  3. Example showing server management functions and unique server passkeys: [`examples/server_management/README.md`](./examples/server_management/README.md)
 
-  Would migrate to one of the following
-  
-  a. Updating the `komodo_allowed_ips` to feature the IPv6 prefix, i.e. `192.168.10.20` -> `::ffff:192.168.10.20`
-
-  ```yaml
-  komodo:
-    hosts:
-        komodo_periphery:
-            ansible_host: 192.168.10.21
-            komodo_allowed_ips:
-                - "::ffff:192.168.10.20"
-  ```
-  
-  b. Adding the `komodo_bind_ip` variable which will revert to legacy behavior.
-
-  ```yaml
-  komodo:
-    hosts:
-        komodo_periphery:
-            ansible_host: 192.168.10.21
-            komodo_allowed_ips:
-                - "192.168.10.20"
-            komodo_bind_ip: 0.0.0.0
-  ```
     
