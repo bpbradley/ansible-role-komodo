@@ -48,7 +48,7 @@ Features which rely on API credentials, when enabled, will give an error indicat
 Below are the needed credentials to access the Komodo API.
 
 The `komodo_core_url` is just the address needed to reach komodo from the target server, *which can be different for each server if needed*. 
-The remaining credentials API credentials are generated from within Komodo core in **Settings > Profile > New Api Key +**
+The remaining API credentials are generated from within Komodo core in **Settings > Profile > New Api Key +**
 
 | Variable                       | Default                    | Description                                                                                     |
 | ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
