@@ -17,6 +17,15 @@
         home: "{{ komodo_home }}"
       when: komodo_user_exists is not defined or not komodo_user_exists
 
+    - name: Create Ansible temp directory for komodo user
+      ansible.builtin.file:
+        path: "/home/{{ komodo_user }}/.ansible/tmp"
+        state: directory
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+        mode: "0700"
+      become: true
+
     - name: Ensure necessary directories
       ansible.builtin.file:
         path: "{{ item }}"
