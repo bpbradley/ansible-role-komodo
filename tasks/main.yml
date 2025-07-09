@@ -9,50 +9,86 @@
 - name: Set komodo_user_exists fact
   ansible.builtin.set_fact:
     komodo_user_exists: "{{ komodo_user_check.rc == 0 }}"
+  
+- name: Check for API credentials if using server management
+  when: enable_server_management and not (
+          komodo_core_url
+      and komodo_core_api_key
+      and komodo_core_api_secret
+    )
+  ansible.builtin.fail:
+    msg: >
+      Server management was enabled, but missing API credentials.
+      Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
+      and `komodo_core_api_secret`
 
+- name: Check for unsupported configuration
+  when: not enable_server_management and (
+          server_passkey
+    )
+  ansible.builtin.fail:
+    msg: >
+      Setting a server passkey when `enable_server_management=false`.
+      This is not a supported configuration, either enable server management,
+      or explicitly add your server_passkey to the `komodo_passkeys` list.
+      
 - name: Resolve komodo_version
   when: komodo_action in ["install","update"]
   block:
-    - name: Query Komodo Core for its current version
+    - name: Handle automatic versioning with core
       when: komodo_version | lower == "core"
-      ansible.builtin.uri:
-        url: "{{ komodo_core_url | trim('/') }}/read"
-        method: POST
-        body_format: json
-        headers:
-          Content-Type: application/json
-          X-Api-Key:    "{{ komodo_core_api_key }}"
-          X-Api-Secret: "{{ komodo_core_api_secret }}"
-        body:
-          type:   GetVersion
-          params: {}
-        status_code: 200
-        return_content: yes
-        timeout: 15
-      register: _core_version
+      block:
+        - name: Check for API credentials
+          when: not (
+                  komodo_core_url
+              and komodo_core_api_key
+              and komodo_core_api_secret
+            )
+          ansible.builtin.fail:
+            msg: >
+              Automatic versioning with "core" was requested, but missing API credentials.
+              Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
+              and `komodo_core_api_secret`
 
-    - name: Set komodo_version to Komodo Core response
-      when: komodo_version | lower == "core"
-      ansible.builtin.set_fact:
-        _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
-      changed_when: false
+        - name: Query Core API to get Komodo version
+          ansible.builtin.uri:
+            url: "{{ komodo_core_url | trim('/') }}/read"
+            method: POST
+            body_format: json
+            headers:
+              Content-Type: application/json
+              X-Api-Key:    "{{ komodo_core_api_key }}"
+              X-Api-Secret: "{{ komodo_core_api_secret }}"
+            body:
+              type:   GetVersion
+              params: {}
+            status_code: 200
+            return_content: yes
+            timeout: 15
+          register: _core_version
+
+        - name: Set komodo_version to Komodo Core response
+          ansible.builtin.set_fact:
+            _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
+          changed_when: false
       
-    - name: Query GitHub for the latest Komodo release
+    - name: Handle automatic versioning to latest
       when: komodo_version | lower == "latest"
-      ansible.builtin.uri:
-        url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
-        headers:
-          Accept: application/vnd.github+json
-        return_content: yes
-        status_code: 200
-        timeout: 15
-      register: _gh_release
+      block:
+        - name: Query GitHub for the latest Komodo release
+          ansible.builtin.uri:
+            url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
+            headers:
+              Accept: application/vnd.github+json
+            return_content: yes
+            status_code: 200
+            timeout: 15
+          register: _gh_release
 
-    - name: Set komodo_version to latest GitHub tag
-      when: komodo_version | lower == "latest"
-      ansible.builtin.set_fact:
-        _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', 'v') }}"
-      changed_when: false
+        - name: Set komodo_version to latest GitHub tag
+          ansible.builtin.set_fact:
+            _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', 'v') }}"
+          changed_when: false
 
     - name: Determine Komodo version
       when: _komodo_version is not defined
@@ -89,26 +125,25 @@
               + ([passkey] if passkey else [])
             ) | unique
           }}
+    - name: Generate a random passkey
+      when: enable_server_management and 
+            generate_server_passkey and 
+            not server_passkey 
+      ansible.builtin.set_fact:
+        server_passkey: >-
+          {{
+            lookup('password',
+            '/dev/null length=32 chars=ascii_letters,digits')
+          }}
     - name: Update allowed_passkeys with server_passkey
-      when: enable_server_management
-      block:
-        - name: Generate a random passkey
-          when: not server_passkey and generate_server_passkey
-          ansible.builtin.set_fact:
-            server_passkey: >-
-              {{
-                lookup('password',
-                '/dev/null length=32 chars=ascii_letters,digits')
-              }}
-        - name: Update allowed_passkeys
-          ansible.builtin.set_fact:
-            allowed_passkeys: >-
-              {{
-                (
-                  ([allowed_passkeys] | flatten)
-                  + ([server_passkey] if server_passkey else [])
-                ) | unique
-              }}
+      ansible.builtin.set_fact:
+        allowed_passkeys: >-
+          {{
+            (
+              ([allowed_passkeys] | flatten)
+              + ([server_passkey] if server_passkey else [])
+            ) | unique
+          }}
 
 - name: Include install tasks
   ansible.builtin.import_tasks: install.yml

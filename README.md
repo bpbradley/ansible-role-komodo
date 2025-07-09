@@ -81,12 +81,20 @@ Some additional variables to tweak settings or override default behavior.
 ### Note on Generated Passkeys
 
 Enabling passkey generation for unique periphery passkeys with `generate_server_passkey=true` is potentially valuable, but if doing so remember to *always* enable
-this feature whenever you update or install that server. For example, if you generated a random passkey on install, and then *DIDN'T* generate a random passkey
-or set a passkey on a future update, it would overwrite the passkey. If you generated a passkey on install, and then disabled server management entirely on updates,
-then the role will have no knowledge of that generated passkey and it will not include that passkey in its allowed passkeys list, meaning you will lose connection.
+this feature whenever you update or install that server. 
+
+For example, if you generated a random passkey on install, and then *DIDN'T* generate a random passkey
+or set a passkey on a future update, it would not have a server passkey to provide to the server, and it will update it with no passkey. 
+
+Further, if you generated a passkey on install, and then disabled server management entirely on updates,
+then the role will have no knowledge of that generated passkey and it will not include that passkey in its allowed passkeys list, meaning you may be using
+no passkey at all. 
 
 Basically, the simple advice is to *ALWAYS* have `generate_server_passkey=true` or *ALWAYS* have `generate_server_passkey=false` for each server. I recommend setting
 these variables directly in an inventory file. See [`examples/server_management/inventory/all.yml`](./examples/server_management/inventory/all.yml) for an example.
+
+If this is not preferred, you can always generate on install, and then record the generated passkeys and include that explicitly in your `komodo_passkeys` from thereon.
+Or you can of course just always set your own randomly generated `server_passkey`
 
 ### Overriding default configuration templates
 
