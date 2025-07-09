@@ -1,6 +1,6 @@
 # This is a fairly exhaustive example of pretty much all the ways
 # that you could configure an inventory file to modify the behavior
-# of the komodo role. 
+# of the komodo role.
 # Note that many of the tips/tricks here arent needed,
 # but they may give some inspiration for how you want to
 # configure your own setup, depending on your own system complexity
@@ -21,7 +21,7 @@ all:
       ansible_host: localhost
       connection: local
   # Below we can create special komodo hosts, with komodo related variables
-  # set so that each server might have its own particular behavior, or to 
+  # set so that each server might have its own particular behavior, or to
   # just conveniently set some defaults.
   children:
     komodo:
@@ -31,8 +31,8 @@ all:
         # servers in komodo core in addition to deploying periphery
         komodo_core_url: "https://komodo.example.com"
         # Encrypt these with vault!
-        komodo_core_api_key: "some_api_key" 
-        komodo_core_api_secret: "some_api_secret" 
+        komodo_core_api_key: "some_api_key"
+        komodo_core_api_secret: "some_api_secret"
         # Default to allowing server management feature. Can be overriden
         enable_server_management: true
         komodo_passkeys:

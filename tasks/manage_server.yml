@@ -12,9 +12,8 @@
       block:
         - name: Ensure packages for route detection are present
           ansible.builtin.package:
-            name: 
+            name:
               - "{{ 'iproute' if ansible_os_family == 'RedHat' else 'iproute2' }}"
-              - gawk
               - >-
                 {{ 'libc-bin' if ansible_os_family == 'Debian'
                   else 'glibc' if ansible_os_family in ['RedHat','Alpine']
@@ -45,13 +44,21 @@
 
         - name: Determine source IP for routes to Komodo Core
           block:
-            - name: Extract source ip
-              ansible.builtin.shell: >
-                ip -o route get {{ _core_dest_ip }} |
-                awk '{for(i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}'
-              register: src_ip
+            - name: Get route details
+              ansible.builtin.command: "ip -o route get {{ _core_dest_ip }}"
+              register: route
               changed_when: false
-              failed_when: src_ip.rc != 0
+
+            - name: Extract source IP from route
+              ansible.builtin.set_fact:
+                src_ip: >-
+                  {{
+                    (route.stdout.split()
+                    | zip(route.stdout.split()[1:])
+                    | selectattr(0, 'equalto', 'src')
+                    | map(attribute='1')
+                    | first)
+                  }}
 
             - name: Set detected_advertise_ip fact
               ansible.builtin.set_fact:
@@ -63,7 +70,7 @@
             _server_address: >-
               {{ (ssl_enabled | ternary('https', 'http'))
                 ~ '://' ~ detected_advertise_ip ~ ':' ~ periphery_port }}
-    
+
     - name: Check for existing server on Komodo Core
       ansible.builtin.uri:
         url: "{{ komodo_core_url | trim('/') }}/read"
@@ -77,7 +84,7 @@
           params:
             server: "{{ server_name }}"
         status_code: [200, 500]
-        return_content: yes
+        return_content: true
       retries: 2
       delay: 5
       register: probe
@@ -100,7 +107,7 @@
               enabled: true
               passkey: "{{ server_passkey }}"
         status_code: 200
-        return_content: yes
+        return_content: true
       retries: 2
       delay: 5
 
@@ -122,6 +129,6 @@
               enabled: true
               passkey: "{{ server_passkey }}"
         status_code: 200
-        return_content: yes
+        return_content: true
       retries: 2
       delay: 5

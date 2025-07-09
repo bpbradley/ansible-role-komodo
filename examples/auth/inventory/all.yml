@@ -14,7 +14,7 @@ all:
       ansible_host: localhost
       connection: local
   # Below we can create special komodo hosts, with komodo related variables
-  # set so that each server might have its own particular behavior, or to 
+  # set so that each server might have its own particular behavior, or to
   # just conveniently set some defaults.
   children:
     komodo:

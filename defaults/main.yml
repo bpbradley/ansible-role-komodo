@@ -21,7 +21,7 @@ enable_server_management: false
 komodo_core_url: ""
 komodo_core_api_key: ""
 komodo_core_api_secret: ""
-server_name: "{{ inventory_hostname }}" 
+server_name: "{{ inventory_hostname }}"
 server_address: "" # Leave blank to try and autodetect
 server_passkey: "" # Leave blank to use global passkeys in core configuration
 generate_server_passkey: false # Allow a generation of a random passkey
@@ -61,5 +61,3 @@ komodo_bin: ""
 komodo_bin_x86: "periphery-x86_64"
 komodo_bin_x86_legacy: "periphery"
 komodo_bin_aarch64: "periphery-aarch64"
-
-
