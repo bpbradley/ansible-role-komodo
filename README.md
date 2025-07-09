@@ -35,7 +35,7 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 | ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
 | **komodo\_passkeys**                      | `[]`                                            | List of passkeys the server will accept                           |
 | **komodo\_bind\_ip**                      | `[::]`                                          | IP address the server binds to (`0.0.0.0` to force IPv4 only)     |
-| **komodo\_allowed\_ips**                  | `[]`                                            | IP list allowed to reach the periphery API                        |
+| **komodo\_allowed\_ips**                  | `[]`                                            | IP list allowed to access periphery (empty list means all allowed |
 | **ssl\_enabled**                          | `true`                                          | Enable HTTPS links in generated URLs when `true`                  |
 
 ## Server Management
