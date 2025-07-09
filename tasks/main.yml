@@ -10,20 +10,72 @@
   ansible.builtin.set_fact:
     komodo_user_exists: "{{ komodo_user_check.rc == 0 }}"
 
-# Choose binary_name based on user override, architecture, and version
+- name: Resolve komodo_version
+  when: komodo_action in ["install","update"]
+  block:
+    - name: Query Komodo Core for its current version
+      when: komodo_version | lower == "core"
+      ansible.builtin.uri:
+        url: "{{ komodo_core_url | trim('/') }}/read"
+        method: POST
+        body_format: json
+        headers:
+          Content-Type: application/json
+          X-Api-Key:    "{{ komodo_core_api_key }}"
+          X-Api-Secret: "{{ komodo_core_api_secret }}"
+        body:
+          type:   GetVersion
+          params: {}
+        status_code: 200
+        return_content: yes
+        timeout: 15
+      register: _core_version
+
+    - name: Set komodo_version to Komodo Core response
+      when: komodo_version | lower == "core"
+      ansible.builtin.set_fact:
+        _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
+      changed_when: false
+      
+    - name: Query GitHub for the latest Komodo release
+      when: komodo_version | lower == "latest"
+      ansible.builtin.uri:
+        url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
+        headers:
+          Accept: application/vnd.github+json
+        return_content: yes
+        status_code: 200
+        timeout: 15
+      register: _gh_release
+
+    - name: Set komodo_version to latest GitHub tag
+      when: komodo_version | lower == "latest"
+      ansible.builtin.set_fact:
+        _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', 'v') }}"
+      changed_when: false
+
+    - name: Determine Komodo version
+      when: _komodo_version is not defined
+      ansible.builtin.set_fact:
+        _komodo_version: "{{ komodo_version }}"
+    
+    - name: Display Komodo version
+      ansible.builtin.debug:
+        msg: "Using Komodo version: {{ _komodo_version }}"
+
 - name: Select Komodo binary
+  when: komodo_action in ["install","update"]
   ansible.builtin.set_fact:
     binary_name: >-
       {%- if komodo_bin | length > 0 -%}
         {{ komodo_bin }}
       {%- elif ansible_architecture == 'aarch64' -%}
         {{ komodo_bin_aarch64 }}
-      {%- else -%} {# x86_64 #}{%- if (komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
+      {%- else -%} {# x86_64 #}{%- if (_komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
           {{ komodo_bin_x86 }}
       {%- else -%}
           {{ komodo_bin_x86_legacy }}
       {%- endif -%} {%- endif -%}
-  when: komodo_action in ["install","update"]
 
 - name: Normalise Komodo passkeys
   when: komodo_action in ["install","update"]

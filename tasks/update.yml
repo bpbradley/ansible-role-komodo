@@ -46,7 +46,7 @@
 
     - name: Download Komodo Periphery Agent
       ansible.builtin.get_url:
-        url: "https://github.com/moghtech/komodo/releases/download/{{ komodo_version }}/{{ binary_name }}"
+        url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
         mode: "0755"
         owner: "{{ komodo_user }}"
