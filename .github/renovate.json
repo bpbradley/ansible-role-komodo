@@ -7,9 +7,9 @@
     "customManagers": [
         {
             "customType": "regex",
-            "fileMatch": [
-                "defaults/main.yml$",
-                "README.md"
+            "managerFilePatterns": [
+                "/defaults/main.yml$/",
+                "/README.md/"
             ],
             "matchStrings": [
                 "komodo_version: [\"']?(?<currentValue>.+?)[\"']?\\s+",
