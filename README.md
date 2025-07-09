@@ -233,6 +233,6 @@ playbook and control behavior with variables. Here is an example of doing it wit
   This guide only covers the basic information to get off the ground, but you can see more thorough examples
   and explanations in the [`examples/`](./examples) section.
 
-  1. Basic installation example with very little customization: [`examples/basic/README.md`](./examples/basic/README.md)
-  2. Example using authentication with allowed IPs and global passkeys: [`examples/auth/README.md`](./examples/auth/README.md)
-  3. Example showing server management functions and unique server passkeys: [`examples/server_management/README.md`](./examples/server_management/README.md)
+  1. Basic installation example with very little customization: [`examples/basic`](./examples/basic)
+  2. Example using authentication with allowed IPs and global passkeys: [`examples/auth`](./examples/auth)
+  3. Example showing server management functions and unique server passkeys: [`examples/server_management`](./examples/server_management)
