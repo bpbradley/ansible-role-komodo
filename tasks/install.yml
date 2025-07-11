@@ -1,9 +1,9 @@
 ---
 - name: Run install procedure
   when: komodo_action == "install"
-  become: true
   block:
     - name: Ensure Komodo user exists
+      become: true
       ansible.builtin.user:
         name: "{{ komodo_user }}"
         shell: /usr/sbin/nologin
@@ -12,6 +12,7 @@
       when: komodo_user_exists is not defined or not komodo_user_exists
 
     - name: Create Ansible temp directory for komodo user
+      become: true
       ansible.builtin.file:
         path: "/home/{{ komodo_user }}/.ansible/tmp"
         state: directory
@@ -20,6 +21,7 @@
         mode: "0700"
 
     - name: Ensure necessary directories
+      become: true
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -32,6 +34,7 @@
         - "{{ komodo_service_dir }}"
 
     - name: Ensure SSL directory exists
+      become: true
       ansible.builtin.file:
         path: "/etc/komodo/ssl"
         state: directory
@@ -41,6 +44,7 @@
       when: ssl_enabled | default(true)
 
     - name: Add Komodo user to the docker group
+      become: true
       ansible.builtin.user:
         name: "{{ komodo_user }}"
         groups: docker
@@ -48,6 +52,7 @@
 
     - name: Enable lingering for Komodo user
       ansible.builtin.command: loginctl enable-linger {{ komodo_user }}
+      become: true
       changed_when: false
 
     - name: Stop periphery service
@@ -55,6 +60,7 @@
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user stop periphery || true
       become_user: "{{ komodo_user }}"
+      become: true
       changed_when: false
 
     - name: Fail if unsupported architecture
@@ -63,6 +69,7 @@
       when: ansible_architecture not in ['x86_64', 'aarch64']
 
     - name: Download Komodo Periphery Agent
+      become: true
       ansible.builtin.get_url:
         url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
@@ -72,6 +79,7 @@
         force: true
 
     - name: Deploy configuration file
+      become: true
       ansible.builtin.template:
         src: "{{ komodo_config_file_template }}"
         dest: "{{ komodo_config_path }}"
@@ -80,6 +88,7 @@
         group: "{{ komodo_group }}"
 
     - name: Deploy systemd user service file
+      become: true
       ansible.builtin.template:
         src: "{{ komodo_service_file_template }}"
         dest: "{{ komodo_service_path }}"
@@ -92,9 +101,11 @@
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user daemon-reload
       become_user: "{{ komodo_user }}"
+      become: true
       changed_when: false
 
     - name: Enable and start periphery service
+      become: true
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user enable --now periphery

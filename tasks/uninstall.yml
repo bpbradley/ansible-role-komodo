@@ -1,21 +1,23 @@
 ---
 - name: Run uninstall procedure
   when: komodo_action == "uninstall"
-  become: true
   block:
     - name: Stop periphery service
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user stop periphery || true
       become_user: "{{ komodo_user }}"
+      become: true
       changed_when: false
 
     - name: Disable lingering for komodo user
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
       changed_when: false
+      become: true
       when: komodo_delete_user | default(false)
 
     - name: Remove komodo directories
+      become: true
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
@@ -31,6 +33,7 @@
         systemctl --user disable periphery || true
         rm -f {{ komodo_service_path }}
       become_user: "{{ komodo_user }}"
+      become: true
       changed_when: false
 
     - name: Remove komodo user
@@ -39,6 +42,7 @@
         state: absent
         remove: true
         force: true
+      become: true
       when: komodo_delete_user | default(false)
 
     - name: Debug message after uninstall

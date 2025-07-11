@@ -16,7 +16,7 @@
         state: absent
       become: true
       when: komodo_bin_path is defined
-    
+
     - name: Ensure binary path exists for download
       ansible.builtin.file:
         path: "{{ komodo_bin_dir }}"
