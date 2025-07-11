@@ -1,6 +1,7 @@
 ---
 - name: Run install procedure
   when: komodo_action == "install"
+  become: true
   block:
     - name: Ensure Komodo user exists
       ansible.builtin.user:
@@ -17,7 +18,6 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         mode: "0700"
-      become: true
 
     - name: Ensure necessary directories
       ansible.builtin.file:
@@ -38,7 +38,6 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         mode: "0750"
-      become: true
       when: ssl_enabled | default(true)
 
     - name: Add Komodo user to the docker group
@@ -55,7 +54,6 @@
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user stop periphery || true
-      become: true
       become_user: "{{ komodo_user }}"
       changed_when: false
 
@@ -93,7 +91,6 @@
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user daemon-reload
-      become: true
       become_user: "{{ komodo_user }}"
       changed_when: false
 
@@ -101,6 +98,5 @@
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user enable --now periphery
-      become: true
       become_user: "{{ komodo_user }}"
       changed_when: false

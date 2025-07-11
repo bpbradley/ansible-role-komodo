@@ -1,12 +1,12 @@
 ---
 - name: Run uninstall procedure
   when: komodo_action == "uninstall"
+  become: true
   block:
     - name: Stop periphery service
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user stop periphery || true
-      become: true
       become_user: "{{ komodo_user }}"
       changed_when: false
 
@@ -24,14 +24,12 @@
         - "{{ komodo_config_dir }}"
         - "{{ komodo_service_dir }}"
         - "/etc/komodo/ssl"
-      become: true
 
     - name: Disable and remove periphery service
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user disable periphery || true
         rm -f {{ komodo_service_path }}
-      become: true
       become_user: "{{ komodo_user }}"
       changed_when: false
 
@@ -41,7 +39,6 @@
         state: absent
         remove: true
         force: true
-      become: true
       when: komodo_delete_user | default(false)
 
     - name: Debug message after uninstall
