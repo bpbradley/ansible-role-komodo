@@ -1,4 +1,9 @@
 ---
+- name: Ensure ACL package exists for switching to unprivileged user
+  ansible.builtin.package:
+    name: acl
+    state: present
+  become: true
 
 - name: Check if Komodo user exists
   ansible.builtin.command: id -u {{ komodo_user }}

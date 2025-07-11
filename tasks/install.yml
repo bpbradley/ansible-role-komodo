@@ -2,13 +2,6 @@
 - name: Run install procedure
   when: komodo_action == "install"
   block:
-    - name: Ensure ACL package exists when creating a new user
-      ansible.builtin.package:
-        name: acl
-        state: present
-      become: true
-      when: komodo_user_exists is not defined or not komodo_user_exists
-
     - name: Ensure Komodo user exists
       ansible.builtin.user:
         name: "{{ komodo_user }}"
