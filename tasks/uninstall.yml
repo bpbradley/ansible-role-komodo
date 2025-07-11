@@ -6,16 +6,18 @@
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user stop periphery || true
-      become: true
       become_user: "{{ komodo_user }}"
+      become: true
       changed_when: false
 
     - name: Disable lingering for komodo user
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
       changed_when: false
+      become: true
       when: komodo_delete_user | default(false)
 
     - name: Remove komodo directories
+      become: true
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
@@ -24,15 +26,14 @@
         - "{{ komodo_config_dir }}"
         - "{{ komodo_service_dir }}"
         - "/etc/komodo/ssl"
-      become: true
 
     - name: Disable and remove periphery service
       ansible.builtin.shell: |
         export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
         systemctl --user disable periphery || true
         rm -f {{ komodo_service_path }}
-      become: true
       become_user: "{{ komodo_user }}"
+      become: true
       changed_when: false
 
     - name: Remove komodo user

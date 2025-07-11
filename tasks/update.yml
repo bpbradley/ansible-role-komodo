@@ -10,14 +10,24 @@
       become_user: "{{ komodo_user }}"
       changed_when: false
 
-    - name: Remove old Komodo Periphery binary
+    - name: Remove old binaries
       ansible.builtin.file:
         path: "{{ komodo_bin_path }}"
         state: absent
       become: true
       when: komodo_bin_path is defined
 
+    - name: Ensure binary path exists for download
+      ansible.builtin.file:
+        path: "{{ komodo_bin_dir }}"
+        state: directory
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+        mode: "0750"
+      become: true
+
     - name: Ensure necessary directories
+      become: true
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -45,6 +55,7 @@
       when: ansible_architecture not in ['x86_64', 'aarch64']
 
     - name: Download Komodo Periphery Agent
+      become: true
       ansible.builtin.get_url:
         url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
@@ -54,6 +65,7 @@
         force: true
 
     - name: Deploy configuration file
+      become: true
       ansible.builtin.template:
         src: "{{ komodo_config_file_template }}"
         dest: "{{ komodo_config_path }}"
@@ -62,6 +74,7 @@
         group: "{{ komodo_group }}"
 
     - name: Deploy systemd user service file
+      become: true
       ansible.builtin.template:
         src: "{{ komodo_service_file_template }}"
         dest: "{{ komodo_service_path }}"
