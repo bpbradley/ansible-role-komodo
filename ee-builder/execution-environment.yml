@@ -1,0 +1,42 @@
+---
+
+version: 3
+
+images:
+  base_image:
+    name: registry.fedoraproject.org/fedora:42
+
+options:
+  container_init:
+    package_pip: dumb-init==1.2.5
+    entrypoint: '["/usr/local/bin/entrypoint.sh"]'
+    cmd: '["bash"]'
+
+dependencies:
+  galaxy: requirements.yml
+  python_interpreter:
+    package_system: python3
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
+  system:
+  - openssh-clients
+  - sshpass
+  - less
+
+additional_build_files:
+  - src: .vault_pass.sh
+    dest: scripts
+  - src: entrypoint.sh
+    dest: scripts
+
+additional_build_steps:
+  prepend_base:
+    - RUN dnf install -y python3 python3-pip python3-libdnf5
+  append_final: |
+    COPY _build/scripts/.vault_pass.sh /etc/ansible/.vault_pass.sh
+    COPY _build/scripts/entrypoint.sh  /usr/local/bin/entrypoint.sh
+    COPY --from=builder /opt/builder/bin/entrypoint /usr/bin/entrypoint
+    RUN chmod 555 /etc/ansible/.vault_pass.sh  && \ 
+        chmod 555 /usr/local/bin/entrypoint.sh
