@@ -39,7 +39,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build image
-        run: ansible-builder build --container-runtime docker -t $IMAGE_URI:latest
+        run: |
+          ansible-builder build \
+          --container-runtime docker \
+          --tag $IMAGE_URI:latest \
+          --build-arg LABEL_SOURCE="org.opencontainers.image.source=https://github.com/${{ github.repository }}"
 
       - name: Push image
         run: docker push $IMAGE_URI:latest
