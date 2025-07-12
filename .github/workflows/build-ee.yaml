@@ -7,8 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: komodo-ee
-  IMAGE_URI: ghcr.io/${{ github.repository_owner }}/komodo-ee
+  IMAGE_URI: ghcr.io/${{ github.repository }}/ansible-ee
 
 jobs:
   build:
@@ -42,8 +41,7 @@ jobs:
         run: |
           ansible-builder build \
           --container-runtime docker \
-          --tag $IMAGE_URI:latest \
-          --build-arg LABEL_SOURCE="org.opencontainers.image.source=https://github.com/${{ github.repository }}"
+          --tag $IMAGE_URI:latest
 
       - name: Push image
         run: docker push $IMAGE_URI:latest
