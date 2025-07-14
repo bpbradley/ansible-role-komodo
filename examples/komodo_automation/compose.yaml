@@ -1,0 +1,18 @@
+services:
+  ansible:
+    image: ghcr.io/bpbradley/ansible/komodo-ee:latest
+    user: ${UID}:${GID}
+    restart: no
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./ansible:/ansible
+      - ./ssh:/root/.ssh:ro
+    environment:
+      VAULT_PASS: ${VAULT_PASS_HOST}
+      ANSIBLE_HOST_KEY_CHECKING: false
+    command: >
+     ansible-playbook /ansible/playbooks/komodo.yml
+     -i /ansible/inventory/all.yml
+     -e komodo_action=update
+     -e komodo_version=core

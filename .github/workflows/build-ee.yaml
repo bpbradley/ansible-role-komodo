@@ -2,7 +2,7 @@ name: Build Ansible EE
 on:
   workflow_run:
     workflows: ["Publish to Ansible Galaxy"]
-    types: 
+    types:
       - completed
 
 env:
@@ -42,7 +42,7 @@ jobs:
           ansible-builder build \
           --container-runtime docker \
           --tag $IMAGE_URI:latest
-      
+
       - name: Push latest
         run: docker push $IMAGE_URI:latest
 
