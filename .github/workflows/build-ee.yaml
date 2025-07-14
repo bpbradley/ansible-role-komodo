@@ -1,15 +1,16 @@
 name: Build Ansible EE
 on:
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Publish to Ansible Galaxy"]
+    types: 
+      - completed
 
 env:
   IMAGE_URI: ghcr.io/${{ github.repository_owner }}/ansible/komodo-ee
 
 jobs:
   build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,7 +41,15 @@ jobs:
         run: |
           ansible-builder build \
           --container-runtime docker \
-          --tag $IMAGE_URI:latest 
-
-      - name: Push image
+          --tag $IMAGE_URI:latest
+      
+      - name: Push latest
         run: docker push $IMAGE_URI:latest
+
+      - name: Push release
+        if: startsWith(github.event.workflow_run.head_branch, 'v')
+        env:
+          TAG_NAME: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          docker tag $IMAGE_URI:latest $IMAGE_URI:$TAG_NAME
+          docker push $IMAGE_URI:$TAG_NAME
