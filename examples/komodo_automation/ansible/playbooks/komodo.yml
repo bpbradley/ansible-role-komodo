@@ -1,0 +1,5 @@
+---
+- name: Manage Komodo Periphery Service
+  hosts: komodo
+  roles:
+    - role: bpbradley.komodo

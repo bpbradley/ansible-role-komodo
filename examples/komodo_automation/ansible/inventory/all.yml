@@ -1,0 +1,36 @@
+all:
+  # Here you can have your typical inventory configurations.
+  # Add additonal vars: section for ssh keyfiles, etc.
+  hosts:
+    komodo_host1:
+      ansible_host: 10.1.10.4
+    komodo_host2:
+      ansible_host: 10.1.10.5
+    komodo_host3:
+      ansible_host: 10.1.10.6
+  children:
+    komodo:
+      vars:
+        komodo_core_url: "https://komodo.example.com"
+        komodo_core_api_key: "some_api_key"
+        komodo_core_api_secret: "some_api_secret"
+        enable_server_management: true
+        generate_server_passkey: true
+      children:
+        core:
+          hosts:
+            komodo_host1:
+              komodo_allowed_ips:
+                - "172.20.0.101"
+              server_address: https://host.docker.internal:8120
+              komodo_bind_ip: "{{ ansible_docker0.ipv4.address}}"
+        periphery:
+          hosts:
+            komodo_host2:
+              server_name: "SomeExistingServer"
+              komodo_allowed_ips:
+                - "::ffff:10.1.10.4"
+            komodo_host3:
+              komodo_allowed_ips:
+                - "{{ hostvars['komodo_host1'].ansible_host }}"
+              komodo_bind_ip: "{{ ansible_host }}""
