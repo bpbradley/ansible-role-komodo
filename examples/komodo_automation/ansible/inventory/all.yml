@@ -27,6 +27,7 @@ all:
         periphery:
           hosts:
             komodo_host2:
+              server_name: "SomeExistingServer"
               komodo_allowed_ips:
                 - "::ffff:10.1.10.4"
             komodo_host3:

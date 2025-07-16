@@ -3,5 +3,3 @@
   hosts: komodo
   roles:
     - role: bpbradley.komodo
-      komodo_action: "install"
-      komodo_version: "core"
