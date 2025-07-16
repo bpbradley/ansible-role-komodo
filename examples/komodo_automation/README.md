@@ -1,9 +1,11 @@
 # Automating Deployment with Komodo and Docker
 
-I am maintaining an Ansible Execution Environment with this role,
-so that it is possible to easily trigger deployment of periphery
-using Docker. This means we can setup Komodo to update its own
-periphery when needed.
+This guide demonstrates how to use an Ansible Execution Environment to automate Komodo periphery deployments using Docker. This approach enables Komodo to update its own periphery instances when needed.
+
+## Prerequisites
+
+- Working Komodo Core installation
+- Basic understanding of Ansible and Docker
 
 ## Step 0: Familiarize Yourself
 
@@ -13,33 +15,36 @@ manner first, from a proper ansible host. This way, if something goes wrong,
 you can very quickly remedy it with a redeploy from your working 
 environment.
 
-## Step 1:  Generate API credentials
+## Step 1: Generate API Credentials
 
-This example will use the server management and automatic
-versioning features, so API credentials are needed.
+This example uses server management and automatic versioning features, which require API credentials.
 
-If you don't want to enable those features, this can be skipped.
+> **Note:** If you don't want to enable these features, you can skip this step.
 
-Navigate to **Settings > Profile > New Api Key +**. Take note
-of the API Key and the API secret.
+1. Navigate to **Settings > Profile > New Api Key +**
+2. Take note of the API Key and API secret
 
+```text
+Example API Key: K-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Example API Secret: S-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
-Test API Key: K-IOD8sYx9zbED5SHbI13X84138gh2uEXNldgeU8ng
-Test API Secret: S-7zs7EXQZchnieSsL82fze1YpvwPGdIM76PuiZDqD
-```
 
-Now, ideally you should encrypt these variables with the vault
+### Encrypt Credentials with Ansible Vault
 
-```sh
-# Generate a vault passphrase, or provide your own.
+For security, encrypt these variables using Ansible Vault:
+
+```bash
+# Generate a vault passphrase (or provide your own)
 openssl rand -base64 32 > vault-pass.txt
-ansible-vault encrypt_string --vault-password-file vault-pass.txt "K-IOD8sYx9zbED5SHbI13X84138gh2uEXNldgeU8ng" --name "komodo_core_api_key"
-ansible-vault encrypt_string --vault-password-file vault-pass.txt "S-7zs7EXQZchnieSsL82fze1YpvwPGdIM76PuiZDqD" --name "komodo_core_api_secret"
+
+# Encrypt the API credentials
+ansible-vault encrypt_string --vault-password-file vault-pass.txt "YOUR_ACTUAL_API_KEY" --name "komodo_core_api_key"
+ansible-vault encrypt_string --vault-password-file vault-pass.txt "YOUR_ACTUAL_API_SECRET" --name "komodo_core_api_secret"
 ```
 
-Example output
+Example output:
 
-```
+```yaml
 Encryption successful
 komodo_core_api_key: !vault |
           $ANSIBLE_VAULT;1.1;AES256
@@ -59,15 +64,15 @@ komodo_core_api_secret: !vault |
           3962636334366164626335343333323462373732373063366465
 ```
 
-You can now safely paste these directly into your inventory file and keep it
-in version control. **Make sure to store the contents of `vault-pass.txt`
-somewhere safe. In my case, the output was `Ia8x7B9pxxjuhVt9syaj5U9YFU5PM0TVGlUmX9WsYHc=`
+**Note:** Store the contents of `vault-pass.txt` securely. In this example, the vault password is: `Ia8x7B9pxxjuhVt9syaj5U9YFU5PM0TVGlUmX9WsYHc=`
 
-## Step 2: Update your inventory file
+## Step 2: Update Your Inventory File
 
-Update inventory/all.yml with the variables created above, and change the core URL as needed. *Note* if you are updating existing servers with this, make sure to add a `server_name` to the specific server that matches that name, otherwise it is going to create a new server with the `ansible_inventory_name` instead.
+Update `inventory/all.yml` with the encrypted variables created above and configure the core URL:
 
-```
+> **Important:** If updating existing servers, ensure you add a `server_name` that matches the existing server name. Otherwise, Ansible will create a new server using the `ansible_inventory_name`.
+
+```yaml
     komodo:
       vars:
         komodo_core_url: "https://komodo.example.com"
@@ -90,20 +95,26 @@ Update inventory/all.yml with the variables created above, and change the core U
         generate_server_passkey: true
 ```
 
-Update all of your host specific settings as needed for each server. This means
-making sure you have the correct `ansible_host` (and ssh credentials), `komodo_allowed_ips`, and any additional passkeys, as well as any additional settings as needed for each host.
+### Further Host-Specific Configurations
 
-## Step 3: Create the Deployment stack in Komodo
+Update all host-specific settings for each server, including:
+- Correct `ansible_host` and SSH credentials
+- `komodo_allowed_ips` configuration
+- Additional passkeys as needed
+- `server_name` as mentioned above
+- Any other host-specific settings
 
-Here we will use the Ansible Execution Environment in a Komodo hosted
-Docker stack. 
+## Step 3: Create the Deployment Stack in Komodo
 
-In Komodo, navigate to **Stacks > New Stack** and create a stack with
-your preferred settings.
+We can now use the Ansible Execution Environment in a Komodo-hosted Docker stack.
 
-Here is the compose.yaml we will be using.
+1. In Komodo, navigate to **Stacks > New Stack**
+2. Create a stack with your preferred settings
+3. Use the following configuration files:
 
-```
+### compose.yaml
+
+```yaml
 ---
 
 services:
@@ -125,40 +136,73 @@ services:
      -e komodo_action=${KOMODO_ACTION}
      -e komodo_version=${KOMODO_VERSION}
 ```
-And here would be my accompanying `.env`
 
-```
+### .env
+
+```bash
 VAULT_PASS=Ia8x7B9pxxjuhVt9syaj5U9YFU5PM0TVGlUmX9WsYHc=
 KOMODO_ACTION=update
 KOMODO_VERSION=core
 ```
-Take careful note of a few key points.
 
-1. I made the default action update and version core. This is assuming that you've already installed periphery on the necessary server. You can safely change this to install if needed instead. The default version is core, because I want to always version it to match Komodo core, but you can set it to any release tag.
-1. The vault password can be stored as a
-secret in **Komodo > Settings > New Variable** and then referenced in your
-`.env` with `VAULT_PASS=[[VAULT_SECRET_VAR]]`
-1. My stack has all config files colocated with the stack (in revision control)
-so I am using relative paths with my bind mounts. Make sure the `./ansible` folder from this example is mounted to `/ansible` is all that matters
-1. I also have my ssh keys local to the stack (stored safely in 1password, so I can keep the ssh key as a secret reference in revision control). If you are connecting by ssh key, make sure it is mounted to the location that your ansible inventory file expects it.
-1. Speaking of SSH keys, make sure that the user you run the stack as is the owner of the SSH key, as SSH keys cant be world readable.
-1. If you don't want `ANSIBLE_HOST_KEY_CHECKING: false` you will need to pass in a known_host file. Perhaps something like `ssh-keyscan -H <target_ip> >> ~/.ssh/known_hosts` for each host, and then mount that to the service with `- ~/.ssh/known_hosts:/root/.ssh/known_hosts:ro`
+### Important Configuration Notes
 
-## Step 4: Run the stack
+1. **Default Actions**: The example sets `KOMODO_ACTION=update` and `KOMODO_VERSION=core`, assuming periphery is already installed. Change to `install` if needed. The `core` version ensures periphery matches Komodo core version.
 
-If you want to be cautious, you can first ammend the command with `-l komodo_host2`, or some specific host that is non-critical so that you
-can test it is working. If you do so, it will only run on that host.
+2. **Vault Password Security**: Store the vault password as a secret in **Komodo > Settings > New Variable** and reference it in your `.env` with:
+   ```bash
+   VAULT_PASS=[[VAULT_SECRET_VAR]]
+   ```
 
-Otherwise, hit `Deploy` and see what happens. You will likely get kicked momentarily as the periphery which ran the deploy command will be lost during update. But it should pop back up in a few seconds, and you can check the logs to see everything is working.
+3. **File Mounting**: The example uses relative paths with bind mounts. Ensure the `./ansible` folder is mounted to `/ansible` in the container.
 
-## Step 5: Add an Action for Improved  Automation
+4. **SSH Keys**: Store SSH keys securely (e.g., I keep mine in 1Password) and mount them to the expected location. Ensure the container user owns the SSH key files (SSH keys cannot be world-readable).
 
-We can easily create an action that checks the current versions of all periphery
-servers, and if any of them mismatch with Core, we can deploy an update.
+5. **Host Key Checking**: If you don't want `ANSIBLE_HOST_KEY_CHECKING: false`, create a known_hosts file:
+   ```bash
+   ssh-keyscan -H <target_ip> >> ~/.ssh/known_hosts
+   ```
+   Then mount it with:
+   ```yaml
+   - ~/.ssh/known_hosts:/root/.ssh/known_hosts:ro
+   ```
 
-Here is the basic Action script
+## Step 4: Run the Stack
 
-```ts
+### Testing (Recommended)
+
+For initial testing, limit deployment to a non-critical host:
+
+```bash
+# Add this to the command to target a specific host
+-l komodo_host2
+```
+
+So for example, the stack command would be 
+
+```yaml
+    command: >
+     ansible-playbook /ansible/playbooks/komodo.yml
+     -i /ansible/inventory/all.yml
+     -e komodo_action=${KOMODO_ACTION}
+     -e komodo_version=${KOMODO_VERSION}
+     -l komodo_host2
+```
+
+### Deployment
+
+1. Click **Deploy** in the Komodo interface
+2. **Expected behavior**: You may be temporarily disconnected as the periphery running the deploy command is updated
+3. The periphery should restart within a few seconds
+4. Check the logs to verify successful deployment
+
+## Step 5: Add an Action for Improved Automation
+
+Create an action that automatically checks periphery versions against Core and triggers updates when mismatches are detected.
+
+### Action Script
+
+```typescript
 async function main() {
   const { version: coreVersion } =
     await komodo.read("GetVersion", {}) as Types.GetVersionResponse;
@@ -215,10 +259,14 @@ try {
 }
 ```
 
-## Beyond
+## Beyond: Further Automation
 
-You can setup renovate on a GitHub repository to create a PR 
-when a new version of komodo is available. This repository has
-an example of how you could might that in `.github/renovate.json`
-You could then setup the stack to deploy with a webhook, so that
-merging update PRs from renovate would trigger a periphery update.
+### Automated Updates with Renovate
+
+You can set up Renovate on a GitHub repository to automatically create pull requests when new Komodo versions are available.
+
+1. This repository includes an example configuration in `.github/renovate.json`
+2. Configure your stack to deploy via webhook
+3. Merging Renovate update PRs will automatically trigger periphery updates
+
+This creates a fully automated update pipeline for your Komodo infrastructure that is consistent with how you may deploy your other stacks.
