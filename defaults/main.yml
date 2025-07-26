@@ -61,3 +61,5 @@ komodo_bin: ""
 komodo_bin_x86: "periphery-x86_64"
 komodo_bin_x86_legacy: "periphery"
 komodo_bin_aarch64: "periphery-aarch64"
+
+komodo_agent_secrets: []

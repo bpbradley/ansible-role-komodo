@@ -92,6 +92,7 @@ Some additional variables to tweak settings or override default behavior.
 | **logging\_level**                        | `info`                                          | Periphery log level                                               |
 | **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
 | **logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
+| **komodo_agent_secrets**                  | `[]`                                            | List of komodo secrets only available to the agent.               |
 
 ### Automatic Versioning
 

@@ -36,3 +36,16 @@ passkeys = {{ allowed_passkeys }}
 logging.level = "{{logging_level}}"
 logging.stdio = "{{logging_stdio}}"
 logging.opentelemetry_service_name = "{{logging_opentelemetry_service_name}}"
+
+###########
+# SECRETS #
+###########
+
+## Provide periphery-based secrets
+{% if len(komodo_agent_secrets) > 0 %}
+[secrets]
+{% for secret in komodo_agent_secrets %}
+
+{{ secret.name }} = "{{ secret.value }}"
+{% endfor %}
+{% endif %}
