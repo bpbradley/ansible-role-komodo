@@ -42,7 +42,7 @@ logging.opentelemetry_service_name = "{{logging_opentelemetry_service_name}}"
 ###########
 
 ## Provide periphery-based secrets
-{% if len(komodo_agent_secrets) > 0 %}
+{% if komodo_agent_secrets | length > 0 %}
 [secrets]
 {% for secret in komodo_agent_secrets %}
 
