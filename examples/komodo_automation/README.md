@@ -19,7 +19,7 @@ environment.
 
 This example uses server management and automatic versioning features, which require API credentials.
 
-> **Note:** If you don't want to enable these features, you can skip this step.
+> **Note:** If you don't want to enable these features, you can skip this step and adjust your setup accordingly
 
 1. Navigate to **Settings > Profile > New Api Key +**
 2. Take note of the API Key and API secret
@@ -68,9 +68,9 @@ komodo_core_api_secret: !vault |
 
 ## Step 2: Update Your Inventory File
 
-Update `inventory/all.yml` with the encrypted variables created above and configure the core URL:
+Update `ansible/inventory/all.yml` with the encrypted variables created above and configure the core URL:
 
-> **Important:** If updating existing servers, ensure you add a `server_name` that matches the existing server name. Otherwise, Ansible will create a new server using the `ansible_inventory_name`.
+> **Important:** If updating existing servers, ensure you add a `server_name` that matches the existing server name. Otherwise, this role will create a new server using the `ansible_inventory_name`.
 
 ```yaml
     komodo:
@@ -97,7 +97,7 @@ Update `inventory/all.yml` with the encrypted variables created above and config
 
 ### Further Host-Specific Configurations
 
-Update all host-specific settings for each server, including:
+Update all host-specific settings for each server just as you would typically do in Ansible, including:
 - Correct `ansible_host` and SSH credentials
 - `komodo_allowed_ips` configuration
 - Additional passkeys as needed
@@ -110,7 +110,7 @@ We can now use the Ansible Execution Environment in a Komodo-hosted Docker stack
 
 1. In Komodo, navigate to **Stacks > New Stack**
 2. Create a stack with your preferred settings
-3. Use the following configuration files:
+3. Use the following configuration files, plus the included `ansible/` folder alongside your compose.yaml:
 
 ### compose.yaml
 
@@ -129,12 +129,8 @@ services:
       - ./ssh:/root/.ssh:ro
     environment:
       VAULT_PASS: ${VAULT_PASS}
-      ANSIBLE_HOST_KEY_CHECKING: false
-    command: >
-     ansible-playbook /ansible/playbooks/komodo.yml
-     -i /ansible/inventory/all.yml
-     -e komodo_action=${KOMODO_ACTION}
-     -e komodo_version=${KOMODO_VERSION}
+      ANSIBLE_HOST_KEY_CHECKING: ${ANSIBLE_HOST_KEY_CHECKING:-false}
+    command: ${ANSIBLE_COMMAND}
 ```
 
 ### .env
@@ -143,22 +139,39 @@ services:
 VAULT_PASS=Ia8x7B9pxxjuhVt9syaj5U9YFU5PM0TVGlUmX9WsYHc=
 KOMODO_ACTION=update
 KOMODO_VERSION=core
+
+# Ansible command - fully customizable
+ANSIBLE_COMMAND=ansible-playbook /ansible/playbooks/komodo.yml -i /ansible/inventory/all.yml -e komodo_action=${KOMODO_ACTION} -e komodo_version=${KOMODO_VERSION}
+
+# ANSIBLE_HOST_KEY_CHECKING=true
+```
+
+### Example .env Configurations
+
+**For targeting specific hosts:**
+```bash
+ANSIBLE_COMMAND=ansible-playbook /ansible/playbooks/komodo.yml -i /ansible/inventory/all.yml -e komodo_action=${KOMODO_ACTION} -e komodo_version=${KOMODO_VERSION} -l production_servers
+```
+
+**For dry-run testing:**
+```bash
+ANSIBLE_COMMAND=ansible-playbook /ansible/playbooks/komodo.yml -i /ansible/inventory/all.yml -e komodo_action=${KOMODO_ACTION} -e komodo_version=${KOMODO_VERSION} --check --diff
 ```
 
 ### Important Configuration Notes
 
 1. **Default Actions**: The example sets `KOMODO_ACTION=update` and `KOMODO_VERSION=core`, assuming periphery is already installed. Change to `install` if needed. The `core` version ensures periphery matches Komodo core version.
 
-2. **Vault Password Security**: Store the vault password as a secret in **Komodo > Settings > New Variable** and reference it in your `.env` with:
+1. **Vault Password Security**: Store the vault password as a secret in **Komodo > Settings > New Variable** and reference it in your `.env` with:
    ```bash
    VAULT_PASS=[[VAULT_SECRET_VAR]]
    ```
 
-3. **File Mounting**: The example uses relative paths with bind mounts. Ensure the `./ansible` folder is mounted to `/ansible` in the container.
+1. **File Mounting**: The example uses relative paths with bind mounts. Ensure the `./ansible` folder is mounted to `/ansible` in the container.
 
-4. **SSH Keys**: Store SSH keys securely (e.g., I keep mine in 1Password) and mount them to the expected location. Ensure the container user owns the SSH key files (SSH keys cannot be world-readable).
+1. **SSH Keys**: Store SSH keys securely (e.g., I keep mine in 1Password) and mount them to the expected location. Ensure the container user owns the SSH key files (SSH keys cannot be world-readable).
 
-5. **Host Key Checking**: If you don't want `ANSIBLE_HOST_KEY_CHECKING: false`, create a known_hosts file:
+1. **Host Key Checking**: If you enable `ANSIBLE_HOST_KEY_CHECKING=true`, create a known_hosts file:
    ```bash
    ssh-keyscan -H <target_ip> >> ~/.ssh/known_hosts
    ```
@@ -171,22 +184,16 @@ KOMODO_VERSION=core
 
 ### Testing (Recommended)
 
-For initial testing, limit deployment to a non-critical host:
+For initial testing, you can easily modify the command in your `.env` file to limit deployment to a non-critical host:
 
 ```bash
-# Add this to the command to target a specific host
--l komodo_host2
+# In your .env file, modify ANSIBLE_COMMAND to target specific hosts
+ANSIBLE_COMMAND=ansible-playbook /ansible/playbooks/komodo.yml -i /ansible/inventory/all.yml -e komodo_action=${KOMODO_ACTION} -e komodo_version=${KOMODO_VERSION} -l komodo_host2
 ```
 
-So for example, the stack command would be 
-
-```yaml
-    command: >
-     ansible-playbook /ansible/playbooks/komodo.yml
-     -i /ansible/inventory/all.yml
-     -e komodo_action=${KOMODO_ACTION}
-     -e komodo_version=${KOMODO_VERSION}
-     -l komodo_host2
+Or for a dry-run to see what would change:
+```bash
+ANSIBLE_COMMAND=ansible-playbook /ansible/playbooks/komodo.yml -i /ansible/inventory/all.yml -e komodo_action=${KOMODO_ACTION} -e komodo_version=${KOMODO_VERSION} --check --diff
 ```
 
 ### Deployment
@@ -258,6 +265,9 @@ try {
   console.error(e);
 }
 ```
+
+Starting in v1.18.5 of Komodo Core, you will have the ability to run actions on startup. So enabling that, with `-e komodo_version=core`
+will automatically keep periphery up to date with core, and rotate passkeys every power cycle (if using server management).
 
 ## Beyond: Further Automation
 
