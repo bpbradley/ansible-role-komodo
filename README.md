@@ -34,12 +34,13 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 These variables can be set to enforce authentication, SSL, or IP whitelists between
 periphery and Komodo Core. The only feature enabled by defaiut is ssl.
 
-| Variable                                  | Default                                         | Description                                                       |
-| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
-| **komodo\_passkeys**                      | `[]`                                            | List of passkeys the server will accept                           |
-| **komodo\_bind\_ip**                      | `[::]`                                          | IP address the server binds to (`0.0.0.0` to force IPv4 only)     |
-| **komodo\_allowed\_ips**                  | `[]`                                            | IP list allowed to access periphery (empty list means all allowed)|
-| **ssl\_enabled**                          | `true`                                          | Enable HTTPS between core/periphery when `true`                   |
+| Variable                                  | Default | Description                                                                                                                  |
+| ----------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **komodo\_passkeys**                      | `[]`    | List of passkeys the server will accept                                                                                      |
+| **komodo\_bind\_ip**                      | `[::]`  | IP address the server binds to (`0.0.0.0` to force IPv4 only)                                                                |
+| **komodo\_allowed\_ips**                  | `[]`    | IP list allowed to access periphery (empty list means all allowed)                                                           |
+| **ssl\_enabled**                          | `true`  | Enable HTTPS between core/periphery when `true`                                                                              |
+| **komodo\_agent\_secrets**                | `[]`    | List (of name/value pairs) for secrets only available to the agent. See [Adding Periphery Secrets](#adding-periphery-secrets)|
 
 ## API Credentials
 
@@ -92,7 +93,6 @@ Some additional variables to tweak settings or override default behavior.
 | **logging\_level**                        | `info`                                          | Periphery log level                                               |
 | **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
 | **logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
-| **komodo_agent_secrets**                  | `[]`                                            | List of komodo secrets only available to the agent.               |
 
 ### Automatic Versioning
 
@@ -122,6 +122,25 @@ the config and/or service files and setting them in your playbook to `komodo_con
 periphery configuration and the systemd service file, respectively.
 
 Note that in doing so, the deployed files will be exactly as you specify, and they will always take precedence over any other specified variables.
+
+### Adding Periphery Secrets
+
+[Secrets](https://komo.do/docs/variables#defining-variables-and-secrets) can be bound directly to periphery agent in Komodo.
+This can be achieved with this role by adding your secrets as a list of name/value pairs containing your variable name and its value.
+
+For example, you could add this directly to the inventory for a particular host.
+
+```yaml
+komodo_agent_secrets:
+  - name: "SECRET"
+    value: "this-is-a-secret"
+  - name: "ANOTHER_SECRET" 
+    value: "also-a-secret"
+  - name: "SUPER_SECRET"
+    value: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          66386439653762316464626437653766643665373063...
+```
 
 ## Basic Installation / Setup
 

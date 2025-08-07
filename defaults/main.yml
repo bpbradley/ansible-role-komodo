@@ -16,6 +16,15 @@ komodo_bind_ip: "[::]"
 # Replace with your komodo core IP if desired so that only core can access it
 komodo_allowed_ips: []
 
+# Add name/value pairs containing secrets that periphery will have internal access to
+# Example:
+#   komodo_agent_secrets:
+#     - name: "SECRET_1" 
+#       value: "supersecret1"
+#     - name: "SECRET_2"
+#       value: "supersecret2"
+komodo_agent_secrets: []
+
 # Necessary if we want to enable automatic management of the periphery server in core
 enable_server_management: false
 komodo_core_url: ""
@@ -61,5 +70,3 @@ komodo_bin: ""
 komodo_bin_x86: "periphery-x86_64"
 komodo_bin_x86_legacy: "periphery"
 komodo_bin_aarch64: "periphery-aarch64"
-
-komodo_agent_secrets: []
