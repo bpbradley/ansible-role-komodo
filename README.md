@@ -159,8 +159,6 @@ komodo_agent_secrets:
                 komodo_allowed_ips:
                     - "::ffff:192.168.10.20"
     ```
-    Note that this inventory file is for v1.17.1+ komodo versions, as it is supporting the new IPv6 translation layer, either with
-    the `'::ffff:` prefix in the `komodo_allowed_ips` or with a `komodo_bind_ip` of `0.0.0.0` as described in the documentation.
    
 4. **Optional** but recommended. Set an encrypted passkey using `ansible-vault` which matches the passkey set in Komodo Core.
 
