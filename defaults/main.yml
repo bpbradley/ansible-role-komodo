@@ -4,10 +4,6 @@ komodo_version: "v1.18.4"
 # If encrypting, you must run with --ask-vault-pass or have a vault password file.
 komodo_passkeys: []
 
-# For backwards compatibility before `komodo_passkeys`. This variable is a string
-# wheras `komodo_passkeys` is a list and so it can include more than one passkey
-passkey:
-
 # New to v1.17.1 which introduces IPv6 support.
 # If you have issues, set `komodo_bind_ip` to `0.0.0.0`
 # to revert to previous behaviour.

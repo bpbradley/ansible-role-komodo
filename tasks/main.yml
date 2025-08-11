@@ -16,10 +16,10 @@
     komodo_user_exists: "{{ komodo_user_check.rc == 0 }}"
 
 - name: Check for API credentials if using server management
-  when: enable_server_management and not (
-          komodo_core_url
-      and komodo_core_api_key
-      and komodo_core_api_secret
+  when: (enable_server_management | bool) and not (
+          (komodo_core_url is defined and ((komodo_core_url | string | trim) | length > 0))
+      and (komodo_core_api_key is defined and ((komodo_core_api_key | string | trim) | length > 0))
+      and (komodo_core_api_secret is defined and ((komodo_core_api_secret | string | trim) | length > 0))
     )
   ansible.builtin.fail:
     msg: >
@@ -28,8 +28,8 @@
       and `komodo_core_api_secret`
 
 - name: Check for unsupported configuration
-  when: not enable_server_management and (
-          server_passkey
+  when: (not (enable_server_management | bool)) and (
+          (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
     )
   ansible.builtin.fail:
     msg: >
@@ -45,9 +45,9 @@
       block:
         - name: Check for API credentials
           when: not (
-                  komodo_core_url
-              and komodo_core_api_key
-              and komodo_core_api_secret
+                  (komodo_core_url is defined and ((komodo_core_url | string | trim) | length > 0))
+              and (komodo_core_api_key is defined and ((komodo_core_api_key | string | trim) | length > 0))
+              and (komodo_core_api_secret is defined and ((komodo_core_api_secret | string | trim) | length > 0))
             )
           ansible.builtin.fail:
             msg: >
@@ -126,14 +126,15 @@
         allowed_passkeys: >-
           {{
             (
-              ([komodo_passkeys] | flatten)
-              + ([passkey] if passkey else [])
+              ([komodo_passkeys] | default([], true) | flatten)
+              + ([passkey] if (passkey is defined and (((passkey | default('', true) | trim) | length) > 0)) else [])
             ) | unique
           }}
     - name: Generate a random passkey
-      when: enable_server_management and
-            generate_server_passkey and
-            not server_passkey
+      when:
+        - enable_server_management | bool
+        - generate_server_passkey | bool
+        - server_passkey is not defined or ((server_passkey | string | trim) | length == 0)
       ansible.builtin.set_fact:
         server_passkey: >-
           {{
@@ -172,4 +173,4 @@
       [DEPRECATION WARNING] variable `passkey` (string) is deprecated.
       Please switch to `komodo_passkeys` (list). This run converted
       it for you, but this may be removed in a future release.
-  when: passkey
+  when: passkey is defined and (((passkey | default('', true) | trim) | length) > 0)

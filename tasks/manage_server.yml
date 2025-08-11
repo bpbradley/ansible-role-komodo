@@ -1,14 +1,14 @@
 ---
 
 - name: Create Server with Komodo Core
-  when: enable_server_management
+  when: enable_server_management | bool
   block:
     - name: Set server address
-      when: server_address
+      when: server_address is defined and (server_address | string | trim) | length > 0
       ansible.builtin.set_fact:
         _server_address: "{{ server_address }}"
     - name: Detect route to Komodo Core
-      when: not server_address
+      when: server_address is not defined or (server_address | string | trim) | length == 0
       block:
         - name: Ensure packages for route detection are present
           ansible.builtin.package:
