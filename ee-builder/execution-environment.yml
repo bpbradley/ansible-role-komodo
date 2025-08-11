@@ -17,9 +17,9 @@ dependencies:
   python_interpreter:
     package_system: python3
   ansible_core:
-    package_pip: ansible-core
+    package_pip: ansible-core==2.19.0
   ansible_runner:
-    package_pip: ansible-runner
+    package_pip: ansible-runner==2.4.1
   system:
     - openssh-clients
     - sshpass
