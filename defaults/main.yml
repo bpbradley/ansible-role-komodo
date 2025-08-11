@@ -15,7 +15,7 @@ komodo_allowed_ips: []
 # Add name/value pairs containing secrets that periphery will have internal access to
 # Example:
 #   komodo_agent_secrets:
-#     - name: "SECRET_1" 
+#     - name: "SECRET_1"
 #       value: "supersecret1"
 #     - name: "SECRET_2"
 #       value: "supersecret2"

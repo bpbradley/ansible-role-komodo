@@ -4,7 +4,7 @@ services:
   ansible:
     image: ghcr.io/bpbradley/ansible/komodo-ee:latest
     user: ${UID}:${GID}
-    restart: no
+    restart: "no"
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
