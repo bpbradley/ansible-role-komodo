@@ -19,6 +19,9 @@ jobs:
       run:
         working-directory: ee-builder
     steps:
+      - name: Wait
+        run: sleep 30
+
       - name: Checkout repo
         uses: actions/checkout@v4
 
