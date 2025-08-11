@@ -33,4 +33,4 @@ all:
             komodo_host3:
               komodo_allowed_ips:
                 - "{{ hostvars['komodo_host1'].ansible_host }}"
-              komodo_bind_ip: "{{ ansible_host }}""
+              komodo_bind_ip: "{{ ansible_host }}"

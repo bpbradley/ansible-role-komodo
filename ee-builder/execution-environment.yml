@@ -21,9 +21,9 @@ dependencies:
   ansible_runner:
     package_pip: ansible-runner
   system:
-  - openssh-clients
-  - sshpass
-  - less
+    - openssh-clients
+    - sshpass
+    - less
 
 additional_build_files:
   - src: .vault_pass.sh
@@ -38,5 +38,5 @@ additional_build_steps:
     COPY _build/scripts/.vault_pass.sh /etc/ansible/.vault_pass.sh
     COPY _build/scripts/entrypoint.sh  /usr/local/bin/entrypoint.sh
     COPY --from=builder /opt/builder/bin/entrypoint /usr/bin/entrypoint
-    RUN chmod 555 /etc/ansible/.vault_pass.sh  && \ 
+    RUN chmod 555 /etc/ansible/.vault_pass.sh  && \
         chmod 555 /usr/local/bin/entrypoint.sh
