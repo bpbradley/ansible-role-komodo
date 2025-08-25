@@ -3,9 +3,17 @@ Description=Agent to connect with Komodo Core
 
 [Service]
 Environment="HOME={{ komodo_home }}"
+Environment="UID={{ ansible_facts.getent_passwd[komodo_user].1 }}"
+Environment="GID={{ ansible_facts.getent_passwd[komodo_user].2 }}"
+{% if komodo_extra_env | length > 0 %}
+{% for env in komodo_extra_env %}
+Environment="{{ env.name }}={{ env.value }}"
+{% endfor %}
+{% endif %}
 ExecStart=/bin/sh -lc "{{ komodo_bin_path }} --config-path {{ komodo_config_path }}"
 Restart=on-failure
 TimeoutStartSec=0
 
 [Install]
 WantedBy=default.target
+

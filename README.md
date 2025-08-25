@@ -79,6 +79,7 @@ Some additional variables to tweak settings or override default behavior.
 | **komodo\_user**                          | `komodo`                                        | System user that owns files and runs the service                  |
 | **komodo\_group**                         | `komodo`                                        | Group that owns files and runs the service                        |
 | **komodo\_home**                          | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                   |
+| **komodo\_extra\_env**                    | `[]`                                            | List (name/value pairs) of extra env vars available to periphery  |
 | **komodo\_delete\_user**                  | `None`                                          | Only when `komodo_action=uninstall`, *deletes* `komodo_user`      |
 | **komodo\_config\_dir**                   | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                   |
 | **komodo\_config\_file\_template**        | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))    |
