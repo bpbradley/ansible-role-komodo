@@ -39,14 +39,24 @@
         - "{{ komodo_config_dir }}"
         - "{{ komodo_service_dir }}"
 
+    - name: Ensure Komodo base directory exists with correct ownership
+      become: true
+      ansible.builtin.file:
+        path: "/etc/komodo"
+        state: directory
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+        mode: "0750"
+
     - name: Ensure SSL directory exists
+      become: true
       ansible.builtin.file:
         path: "/etc/komodo/ssl"
         state: directory
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         mode: "0750"
-      become: true
+        recurse: true
       when: ssl_enabled | default(true)
 
     - name: Fail if unsupported architecture
