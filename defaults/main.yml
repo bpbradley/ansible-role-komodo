@@ -21,6 +21,13 @@ komodo_allowed_ips: []
 #       value: "supersecret2"
 komodo_agent_secrets: []
 
+# Add name/value pairs containing extra env variables available to komodo periphery environment
+# Example:
+#   komodo_extra_env:
+#     - name: "EXTRA_ENV_NAME"
+#       value: "extra_env_value"
+komodo_extra_env: []
+
 # Necessary if we want to enable automatic management of the periphery server in core
 enable_server_management: false
 komodo_core_url: ""

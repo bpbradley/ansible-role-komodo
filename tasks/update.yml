@@ -73,6 +73,11 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
 
+    - name: Gather passwd entry for Komodo user (UID/GID)
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ komodo_user }}"
+
     - name: Deploy systemd user service file
       become: true
       ansible.builtin.template:
