@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This is a work in progress, and will rely on features only available in Komodo (core and periphery) v1.19.2+
+
 # Automating Deployment with Komodo and Docker
 
 This guide demonstrates how to use an Ansible Execution Environment to automate Komodo periphery deployments using Docker. This approach enables Komodo to update its own periphery instances when needed.
