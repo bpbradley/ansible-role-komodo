@@ -1,5 +1,7 @@
 [Unit]
 Description=Agent to connect with Komodo Core
+StartLimitIntervalSec=15min
+StartLimitBurst=180
 
 [Service]
 Environment="HOME={{ komodo_home }}"
@@ -12,6 +14,7 @@ Environment="{{ env.name }}={{ env.value }}"
 {% endif %}
 ExecStart=/bin/sh -lc "{{ komodo_bin_path }} --config-path {{ komodo_config_path }}"
 Restart=on-failure
+RestartSec=5s
 TimeoutStartSec=0
 
 [Install]
