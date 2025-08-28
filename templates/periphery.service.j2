@@ -12,7 +12,7 @@ Environment="GID={{ ansible_facts.getent_passwd[komodo_user].2 }}"
 Environment="{{ env.name }}={{ env.value }}"
 {% endfor %}
 {% endif %}
-ExecStart={{ komodo_bin_path }} --config-path {{ komodo_config_path }}
+ExecStart=/bin/sh -lc "{{ komodo_bin_path }} --config-path {{ komodo_config_path }}"
 Restart=on-failure
 RestartSec=5s
 TimeoutStartSec=0
