@@ -14,7 +14,7 @@
     - name: Create Ansible temp directory for komodo user
       become: true
       ansible.builtin.file:
-        path: "/home/{{ komodo_user }}/.ansible/tmp"
+        path: "{{ komodo_home }}/.ansible/tmp"
         state: directory
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
