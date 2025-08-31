@@ -88,6 +88,11 @@
         group: "{{ komodo_group }}"
         force: true
 
+    - name: Gather passwd entry for Komodo user (UID/GID)
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ komodo_user }}"
+
     - name: Deploy configuration file
       become: true
       ansible.builtin.template:
@@ -96,11 +101,6 @@
         mode: "0640"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
-
-    - name: Gather passwd entry for Komodo user (UID/GID)
-      ansible.builtin.getent:
-        database: passwd
-        key: "{{ komodo_user }}"
 
     - name: Deploy systemd user service file
       become: true
