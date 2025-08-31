@@ -73,7 +73,7 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         force: true
-        
+
     - name: Gather passwd entry for Komodo user (UID/GID)
       ansible.builtin.getent:
         database: passwd
