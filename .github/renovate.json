@@ -9,7 +9,7 @@
             "customType": "regex",
             "managerFilePatterns": [
                 "/defaults/main.yml$/",
-                "README\\.md$"
+                "README.md"
             ],
             "matchStrings": [
                 "komodo_version: [\"']?(?<currentValue>.+?)[\"']?\\s+",
