@@ -73,7 +73,7 @@
                 ~ '://' ~ detected_advertise_ip ~ ':' ~ periphery_port }}
 
     - name: Check for existing server on Komodo Core
-      check_mode: no
+      check_mode: false
       changed_when: false
       ansible.builtin.uri:
         url: "{{ komodo_core_url | trim('/') }}/read"

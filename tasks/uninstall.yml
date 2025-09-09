@@ -3,18 +3,50 @@
   when: komodo_action == "uninstall"
   block:
     - name: Stop periphery service
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user stop periphery || true
-      become_user: "{{ komodo_user }}"
       become: true
+      become_user: "{{ komodo_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      ansible.builtin.systemd:
+        name: periphery
+        state: stopped
+        scope: user
+      failed_when: false
+      when: komodo_user_exists
+
+    - name: Disable periphery
+      become: true
+      become_user: "{{ komodo_user }}"
+      ansible.builtin.systemd:
+        name: periphery
+        enabled: false
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      failed_when: false
       changed_when: false
+      when: komodo_user_exists
+
+    - name: Remove periphery unit file
+      become: true
+      ansible.builtin.file:
+        path: "{{ komodo_service_path }}"
+        state: absent
+
+    - name: Reload systemd daemon
+      become: true
+      become_user: "{{ komodo_user }}"
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when: komodo_user_exists
 
     - name: Disable lingering for komodo user
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
       changed_when: false
       become: true
-      when: komodo_delete_user | default(false)
 
     - name: Remove komodo directories
       become: true
@@ -26,15 +58,6 @@
         - "{{ komodo_config_dir }}"
         - "{{ komodo_service_dir }}"
         - "/etc/komodo/ssl"
-
-    - name: Disable and remove periphery service
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user disable periphery || true
-        rm -f {{ komodo_service_path }}
-      become_user: "{{ komodo_user }}"
-      become: true
-      changed_when: false
 
     - name: Remove komodo user
       ansible.builtin.user:

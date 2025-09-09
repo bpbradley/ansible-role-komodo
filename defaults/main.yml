@@ -39,7 +39,7 @@ server_passkey: "" # Leave blank to use global passkeys in core configuration
 generate_server_passkey: false # Allow a generation of a random passkey
 
 komodo_user: "komodo"
-komodo_group: "komodo"
+komodo_group: "{{ komodo_user }}"
 
 komodo_home: "/home/{{ komodo_user }}"
 komodo_bin_dir: "{{ komodo_home }}/.local/bin"

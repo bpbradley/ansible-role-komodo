@@ -3,12 +3,16 @@
   when: komodo_action == "update"
   block:
     - name: Stop periphery service
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user stop periphery || true
       become: true
       become_user: "{{ komodo_user }}"
-      changed_when: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      ansible.builtin.systemd:
+        name: periphery
+        state: stopped
+        scope: user
+      failed_when: false
+      when: komodo_user_exists
 
     - name: Remove old binaries
       ansible.builtin.file:
@@ -97,18 +101,34 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
 
-    - name: Reload systemd for Komodo user
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user daemon-reload
+    - name: Reload user systemd
       become: true
       become_user: "{{ komodo_user }}"
-      changed_when: false
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when: komodo_user_exists
 
-    - name: Restart periphery service after update
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user restart periphery
+    - name: Enable periphery
       become: true
       become_user: "{{ komodo_user }}"
-      changed_when: false
+      ansible.builtin.systemd:
+        name: periphery
+        enabled: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when: komodo_user_exists
+
+    - name: Start periphery
+      become: true
+      become_user: "{{ komodo_user }}"
+      ansible.builtin.systemd:
+        name: periphery
+        state: started
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when: komodo_user_exists

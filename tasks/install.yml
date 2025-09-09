@@ -2,14 +2,46 @@
 - name: Run install procedure
   when: komodo_action == "install"
   block:
+    - name: Ensure Komodo group exists
+      become: true
+      ansible.builtin.group:
+        name: "{{ komodo_group }}"
+      when: not komodo_group_exists | bool
+
     - name: Ensure Komodo user exists
       become: true
       ansible.builtin.user:
         name: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
         shell: /usr/sbin/nologin
         create_home: true
         home: "{{ komodo_home }}"
-      when: komodo_user_exists is not defined or not komodo_user_exists
+      when: not komodo_user_exists | bool
+
+    - name: Refresh komodo user
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ komodo_user }}"
+        fail_key: false
+      check_mode: false
+      changed_when: false
+      register: _komodo_passwd_post
+
+    - name: Refresh komodo group
+      ansible.builtin.getent:
+        database: group
+        key: "{{ komodo_group }}"
+        fail_key: false
+      check_mode: false
+      changed_when: false
+      register: _komodo_group_post
+
+    - name: Refresh existence facts
+      ansible.builtin.set_fact:
+        komodo_user_exists: >-
+          {{ (_komodo_passwd_post.ansible_facts.getent_passwd | default({})).get(komodo_user) is not none }}
+        komodo_group_exists: >-
+          {{ (_komodo_group_post.ansible_facts.getent_group | default({})).get(komodo_group) is not none }}
 
     - name: Create Ansible temp directory for komodo user
       become: true
@@ -28,19 +60,28 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         mode: "0750"
-      with_items:
+      loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
         - "{{ komodo_service_dir }}"
+      when: not ansible_check_mode
 
-    - name: Ensure Komodo base directory exists with correct ownership
+    - name: Ensure Komodo base directory exists
       become: true
       ansible.builtin.file:
-        path: "/etc/komodo"
+        path: /etc/komodo
+        state: directory
+        mode: "0750"
+
+    - name: Set ownership on Komodo base directory
+      become: true
+      ansible.builtin.file:
+        path: /etc/komodo
         state: directory
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         mode: "0750"
+      when: not ansible_check_mode
 
     - name: Ensure SSL directory exists
       become: true
@@ -66,12 +107,18 @@
       changed_when: false
 
     - name: Stop periphery service
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user stop periphery || true
-      become_user: "{{ komodo_user }}"
       become: true
-      changed_when: false
+      become_user: "{{ komodo_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      ansible.builtin.systemd:
+        name: periphery
+        state: stopped
+        scope: user
+      failed_when: false
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
 
     - name: Fail if unsupported architecture
       ansible.builtin.fail:
@@ -84,14 +131,12 @@
         url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
         mode: "0755"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
+        owner: "{{ komodo_user if komodo_user_exists else omit }}"
+        group: "{{ komodo_group if komodo_group_exists else omit }}"
         force: true
-
-    - name: Gather passwd entry for Komodo user (UID/GID)
-      ansible.builtin.getent:
-        database: passwd
-        key: "{{ komodo_user }}"
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
 
     - name: Deploy configuration file
       become: true
@@ -99,8 +144,11 @@
         src: "{{ komodo_config_file_template }}"
         dest: "{{ komodo_config_path }}"
         mode: "0640"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
+        owner: "{{ komodo_user if komodo_user_exists else omit }}"
+        group: "{{ komodo_group if komodo_group_exists else omit }}"
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
 
     - name: Deploy systemd user service file
       become: true
@@ -110,19 +158,44 @@
         mode: "0644"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
 
-    - name: Reload systemd for Komodo user
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user daemon-reload
-      become_user: "{{ komodo_user }}"
+    - name: Reload user systemd
       become: true
-      changed_when: false
+      become_user: "{{ komodo_user }}"
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
 
-    - name: Enable and start periphery service
+    - name: Enable periphery
       become: true
-      ansible.builtin.shell: |
-        export XDG_RUNTIME_DIR="/run/user/$(id -u {{ komodo_user }})"
-        systemctl --user enable --now periphery
       become_user: "{{ komodo_user }}"
-      changed_when: false
+      ansible.builtin.systemd:
+        name: periphery
+        enabled: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
+
+    - name: Start periphery
+      become: true
+      become_user: "{{ komodo_user }}"
+      ansible.builtin.systemd:
+        name: periphery
+        state: started
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
