@@ -13,7 +13,7 @@
             ],
             "matchStrings": [
                 "komodo_version: [\"']?(?<currentValue>.+?)[\"']?\\s+",
-                "(?<=komodo\\\\_version.*)\"(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)\""
+                "(?m)^\\s*\\|\\s*\\*\\*komodo(?:\\\\)?_version\\*\\*\\s*\\|\\s*[^|\\r\\n]*?(?<currentValue>v?\\d+(?:\\.\\d+){1,3})"
             ],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "moghtech/komodo"
