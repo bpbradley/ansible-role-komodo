@@ -269,7 +269,7 @@ try {
 }
 ```
 
-Starting in v1.18.5 of Komodo Core, you will have the ability to run actions on startup. So enabling that, with `-e komodo_version=core`
+Starting in v1.19.0 of Komodo Core, you will have the ability to run actions on startup. So enabling that, with `-e komodo_version=core`
 will automatically keep periphery up to date with core, and rotate passkeys every power cycle (if using server management).
 
 ## Beyond: Further Automation

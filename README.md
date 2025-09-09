@@ -200,7 +200,7 @@ playbook and control behavior with variables. Here is an example of doing it wit
       roles:
           - role: bpbradley.komodo
           komodo_action: "install"
-          komodo_version: "v1.18.4"
+          komodo_version: "latest"
           komodo_passkeys: 
             - !vault |
                 $ANSIBLE_VAULT;1.1;AES256
@@ -228,12 +228,12 @@ playbook and control behavior with variables. Here is an example of doing it wit
     --vault-password-file .vault_pass
     ```
 
-    Update to the newer version
+    Update to the latest version
 
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
     -e "komodo_action=update" \
-    -e "komodo_version=v1.18.4" \
+    -e "komodo_version=latest" \
     --vault-password-file .vault_pass
 
     ```
@@ -255,4 +255,4 @@ playbook and control behavior with variables. Here is an example of doing it wit
   1. Basic installation example with very little customization: [`examples/basic`](./examples/basic)
   2. Example using authentication with allowed IPs and global passkeys: [`examples/auth`](./examples/auth)
   3. Example showing server management functions and unique server passkeys: [`examples/server_management`](./examples/server_management)
-  4. Building out full automation for komodo-managed periphery redeployment using ansible-in-docker with a custom ansible execution environment that includes this role: [`examples/komodo_automation`](./examples/komodo_automation)
+  4. (WIP) Building out full automation for komodo-managed periphery redeployment using ansible-in-docker with a custom ansible execution environment that includes this role: [`examples/komodo_automation`](./examples/komodo_automation)

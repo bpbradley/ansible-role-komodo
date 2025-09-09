@@ -65,10 +65,10 @@ You can use also it to update / uninstall, or change the version by
 overriding variables with `-e`
 
 ```sh
-# Update to v1.18.4
+# Update to latest
 ansible-playbook playbooks/komodo.yml \
     -e "komodo_action=update" \
-    -e "komodo_version=v1.18.4" 
+    -e "komodo_version=latest" 
 
 # Uninstall and delete komodo service user
 ansible-playbook playbooks/komodo.yml \
