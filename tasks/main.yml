@@ -5,27 +5,53 @@
     state: present
   become: true
 
-- name: Check if Komodo user exists
-  ansible.builtin.command: id -u {{ komodo_user }}
-  register: komodo_user_check
-  failed_when: false
+- name: Detect komodo user
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ komodo_user }}"
+    fail_key: false
+  check_mode: false
   changed_when: false
+  register: _komodo_passwd
 
-- name: Set komodo_user_exists fact
+- name: Detect komodo group
+  ansible.builtin.getent:
+    database: group
+    key: "{{ komodo_group }}"
+    fail_key: false
+  check_mode: false
+  changed_when: false
+  register: _komodo_group
+
+- name: Set existence facts
   ansible.builtin.set_fact:
-    komodo_user_exists: "{{ komodo_user_check.rc == 0 }}"
+    komodo_user_exists: >-
+      {{ (_komodo_passwd.ansible_facts.getent_passwd | default({})).get(komodo_user) is not none }}
+    komodo_group_exists: >-
+      {{ (_komodo_group.ansible_facts.getent_group | default({})).get(komodo_group) is not none }}
 
-- name: Check for API credentials if using server management
-  when: (enable_server_management | bool) and not (
-          (komodo_core_url is defined and ((komodo_core_url | string | trim) | length > 0))
-      and (komodo_core_api_key is defined and ((komodo_core_api_key | string | trim) | length > 0))
-      and (komodo_core_api_secret is defined and ((komodo_core_api_secret | string | trim) | length > 0))
-    )
+- name: Compute whether Core API credentials are required
+  ansible.builtin.set_fact:
+    _need_core_api_creds: >-
+      {{ (enable_server_management | bool)
+         or ((komodo_version | default('') | string | lower) == 'core') }}
+
+- name: Check if Core API credentials are present
+  ansible.builtin.set_fact:
+    _have_core_api_creds: >-
+      {{
+        (komodo_core_url        | default('') | string | trim) | length > 0 and
+        (komodo_core_api_key    | default('') | string | trim) | length > 0 and
+        (komodo_core_api_secret | default('') | string | trim) | length > 0
+      }}
+
+- name: Fail if lacking necessary API credentials
   ansible.builtin.fail:
     msg: >
-      Server management was enabled, but missing API credentials.
+      Configuration needs API credentials, but they are missing.
       Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
       and `komodo_core_api_secret`
+  when: _need_core_api_creds and not _have_core_api_creds
 
 - name: Check for unsupported configuration
   when: (not (enable_server_management | bool)) and (
@@ -43,19 +69,9 @@
     - name: Handle automatic versioning with core
       when: komodo_version | lower == "core"
       block:
-        - name: Check for API credentials
-          when: not (
-                  (komodo_core_url is defined and ((komodo_core_url | string | trim) | length > 0))
-              and (komodo_core_api_key is defined and ((komodo_core_api_key | string | trim) | length > 0))
-              and (komodo_core_api_secret is defined and ((komodo_core_api_secret | string | trim) | length > 0))
-            )
-          ansible.builtin.fail:
-            msg: >
-              Automatic versioning with "core" was requested, but missing API credentials.
-              Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
-              and `komodo_core_api_secret`
-
         - name: Query Core API to get Komodo version
+          check_mode: false
+          changed_when: false
           ansible.builtin.uri:
             url: "{{ komodo_core_url | trim('/') }}/read"
             method: POST
@@ -81,6 +97,8 @@
       when: komodo_version | lower == "latest"
       block:
         - name: Query GitHub for the latest Komodo release
+          check_mode: false
+          changed_when: false
           ansible.builtin.uri:
             url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
             headers:

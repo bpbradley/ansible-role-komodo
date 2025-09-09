@@ -43,11 +43,13 @@
           when: _core_dest_ip == ""
 
         - name: Determine source IP for routes to Komodo Core
+          when: _core_dest_ip != ""
           block:
             - name: Get route details
               ansible.builtin.command: "ip -o route get {{ _core_dest_ip }}"
               register: route
               changed_when: false
+              failed_when: route.rc != 0 or route.stdout | length == 0
 
             - name: Extract source IP from route
               ansible.builtin.set_fact:
@@ -57,13 +59,12 @@
                     | zip(route.stdout.split()[1:])
                     | selectattr(0, 'equalto', 'src')
                     | map(attribute='1')
-                    | first)
+                    | first) | default('')
                   }}
 
             - name: Set detected_advertise_ip fact
               ansible.builtin.set_fact:
-                detected_advertise_ip: >-
-                  {{ src_ip.stdout | default(ansible_default_ipv4.address) }}
+                detected_advertise_ip: "{{ src_ip | default(ansible_default_ipv4.address) }}"
 
         - name: Set server_address to detected URL
           ansible.builtin.set_fact:
@@ -72,6 +73,8 @@
                 ~ '://' ~ detected_advertise_ip ~ ':' ~ periphery_port }}
 
     - name: Check for existing server on Komodo Core
+      check_mode: false
+      changed_when: false
       ansible.builtin.uri:
         url: "{{ komodo_core_url | trim('/') }}/read"
         method: POST
@@ -90,7 +93,7 @@
       register: probe
 
     - name: Update server in Komodo Core
-      when: probe.status == 200
+      when: not ansible_check_mode and probe.status == 200
       ansible.builtin.uri:
         url: "{{ komodo_core_url | trim('/') }}/write"
         method: POST
@@ -112,7 +115,7 @@
       delay: 5
 
     - name: Create server with Komodo Core
-      when: probe.status == 500
+      when: not ansible_check_mode and probe.status == 500
       ansible.builtin.uri:
         url: "{{ komodo_core_url | trim('/') }}/write"
         method: POST
