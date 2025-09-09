@@ -27,7 +27,7 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 | Variable                                  | Default               | Description                                                                       |
 | ----------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
 | **komodo\_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
-| **komodo\_version**                       | `v1.18.4`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
+| **komodo\_version**                       | `v1.19.3`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
 
 ## Security / Authentication Variables
 
