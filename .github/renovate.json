@@ -9,11 +9,11 @@
             "customType": "regex",
             "managerFilePatterns": [
                 "/defaults/main.yml$/",
-                "README\\.md$"
+                "README.md$"
             ],
             "matchStrings": [
                 "komodo_version: [\"']?(?<currentValue>.+?)[\"']?\\s+",
-                "(?m)^\\|\\s*\\*\\*komodo\\\\?_version\\*\\*\\s*\\|\\s*`(?<currentValue>v?[0-9.]+)`"
+                "(?<=komodo\\\\_version.*)`(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)`"
             ],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "moghtech/komodo"
