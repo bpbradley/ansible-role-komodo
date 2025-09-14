@@ -1,4 +1,4 @@
-komodo_version: "v1.19.3"
+komodo_version: "v1.19.4"
 
 # You should encrypt entries with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
 # If encrypting, you must run with --ask-vault-pass or have a vault password file.
