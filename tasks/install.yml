@@ -63,8 +63,31 @@
       loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
-        - "{{ komodo_service_dir }}"
       when: not ansible_check_mode
+
+    - name: Ensure user service directory exists
+      become: true
+      ansible.builtin.file:
+        path: "{{ komodo_service_dir }}"
+        state: directory
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+        mode: "0750"
+      when:
+        - not ansible_check_mode
+        - not komodo_systemwide_service
+
+    - name: Ensure system service directory exists
+      become: true
+      ansible.builtin.file:
+        path: "{{ komodo_service_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when:
+        - not ansible_check_mode
+        - komodo_systemwide_service
 
     - name: Ensure Komodo base directory exists
       become: true
@@ -161,6 +184,20 @@
       when:
         - komodo_user_exists
         - not ansible_check_mode
+        - not komodo_systemwide_service
+
+    - name: Deploy systemd system service file
+      become: true
+      ansible.builtin.template:
+        src: "{{ komodo_service_file_template }}"
+        dest: "{{ komodo_service_path }}"
+        mode: "0644"
+        owner: root
+        group: root
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
+        - komodo_systemwide_service
 
     - name: Reload user systemd
       become: true
@@ -173,8 +210,18 @@
       when:
         - komodo_user_exists
         - not ansible_check_mode
+        - not komodo_systemwide_service
 
-    - name: Enable periphery
+    - name: Reload system systemd
+      become: true
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
+        - komodo_systemwide_service
+
+    - name: Enable periphery (user service)
       become: true
       become_user: "{{ komodo_user }}"
       ansible.builtin.systemd:
@@ -186,8 +233,19 @@
       when:
         - komodo_user_exists
         - not ansible_check_mode
+        - not komodo_systemwide_service
 
-    - name: Start periphery
+    - name: Enable periphery (system service)
+      become: true
+      ansible.builtin.systemd:
+        name: periphery
+        enabled: true
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
+        - komodo_systemwide_service
+
+    - name: Start periphery (user service)
       become: true
       become_user: "{{ komodo_user }}"
       ansible.builtin.systemd:
@@ -199,3 +257,14 @@
       when:
         - komodo_user_exists
         - not ansible_check_mode
+        - not komodo_systemwide_service
+
+    - name: Start periphery (system service)
+      become: true
+      ansible.builtin.systemd:
+        name: periphery
+        state: started
+      when:
+        - komodo_user_exists
+        - not ansible_check_mode
+        - komodo_systemwide_service

@@ -100,6 +100,17 @@
         mode: "0644"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
+      when: not komodo_systemwide_service
+
+    - name: Deploy systemd system service file
+      become: true
+      ansible.builtin.template:
+        src: "{{ komodo_service_file_template }}"
+        dest: "{{ komodo_service_path }}"
+        mode: "0644"
+        owner: root
+        group: root
+      when: komodo_systemwide_service
 
     - name: Reload user systemd
       become: true
@@ -109,9 +120,19 @@
         scope: user
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
-      when: komodo_user_exists
+      when:
+        - komodo_user_exists
+        - not komodo_systemwide_service
 
-    - name: Enable periphery
+    - name: Reload system systemd
+      become: true
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when:
+        - komodo_user_exists
+        - komodo_systemwide_service
+
+    - name: Enable periphery (user service)
       become: true
       become_user: "{{ komodo_user }}"
       ansible.builtin.systemd:
@@ -120,9 +141,20 @@
         scope: user
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
-      when: komodo_user_exists
+      when:
+        - komodo_user_exists
+        - not komodo_systemwide_service
 
-    - name: Start periphery
+    - name: Enable periphery (system service)
+      become: true
+      ansible.builtin.systemd:
+        name: periphery
+        enabled: true
+      when:
+        - komodo_user_exists
+        - komodo_systemwide_service
+
+    - name: Start periphery (user service)
       become: true
       become_user: "{{ komodo_user }}"
       ansible.builtin.systemd:
@@ -131,4 +163,15 @@
         scope: user
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
-      when: komodo_user_exists
+      when:
+        - komodo_user_exists
+        - not komodo_systemwide_service
+
+    - name: Start periphery (system service)
+      become: true
+      ansible.builtin.systemd:
+        name: periphery
+        state: started
+      when:
+        - komodo_user_exists
+        - komodo_systemwide_service

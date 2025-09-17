@@ -20,6 +20,26 @@ the numerous edge cases which appear when running it as a docker container.
 3. **Uninstall** the Komodo Periphery agent, optionally removing the `komodo` user and home directories.
 4. **Manage Servers** in Komodo Core directly, so that you don't have to manually add/update them in core after deployment.
 
+## Service Deployment Options
+
+This role supports two systemd service deployment modes:
+
+### User Service (Default)
+- Service runs as a user service under the `komodo` user
+- Service files are placed in `~/.config/systemd/user/`
+- Requires user session to be active for the service to run
+- Uses `systemctl --user` commands for management
+- Default behavior when `komodo_systemwide_service: false`
+
+### System-wide Service
+- Service runs as a system-wide service but still executes as the `komodo` user
+- Service files are placed in `/etc/systemd/system/`
+- Service starts automatically at boot without requiring user login
+- Uses standard `systemctl` commands for management
+- Enabled by setting `komodo_systemwide_service: true`
+
+Both modes maintain the same security posture by running the service as the restricted `komodo` user.
+
 ## Required Role Variables
 
 For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more details. Below are the only required variables if you are otherwise okay with defaults.
@@ -78,13 +98,14 @@ Some additional variables to tweak settings or override default behavior.
 | ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
 | **komodo\_user**                          | `komodo`                                        | System user that owns files and runs the service                  |
 | **komodo\_group**                         | `komodo`                                        | Group that owns files and runs the service                        |
+| **komodo\_systemwide\_service**           | `false`                                         | Run as system-wide service instead of user service (still runs as komodo user) |
 | **komodo\_home**                          | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                   |
 | **komodo\_extra\_env**                    | `[]`                                            | List (name/value pairs) of extra env vars available to periphery  |
 | **komodo\_delete\_user**                  | `None`                                          | Only when `komodo_action=uninstall`, *deletes* `komodo_user`      |
 | **komodo\_config\_dir**                   | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                   |
 | **komodo\_config\_file\_template**        | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))    |
 | **komodo\_config\_path**                  | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                      |
-| **komodo\_service\_dir**                  | `{{ komodo_home }}/.config/systemd/user`        | Directory for systemd user-mode unit files                        |
+| **komodo\_service\_dir**                  | `{{ komodo_home }}/.config/systemd/user` (user) or `/etc/systemd/system` (system) | Directory for systemd unit files (conditional based on service type) |
 | **komodo\_service\_file\_template**       | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))    |
 | **komodo\_service\_path**                 | `{{ komodo_service_dir }}/periphery.service`    | Destination path of the rendered service file                     |
 | **periphery\_port**                       | `8120`                                          | TCP port the server listens on                                    |
