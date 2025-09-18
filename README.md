@@ -32,7 +32,7 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 ## Security / Authentication Variables
 
 These variables can be set to enforce authentication, SSL, or IP whitelists between
-periphery and Komodo Core. The only feature enabled by defaiut is ssl.
+periphery and Komodo Core. The only feature enabled by default is ssl.
 
 | Variable                                  | Default | Description                                                                                                                  |
 | ----------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
