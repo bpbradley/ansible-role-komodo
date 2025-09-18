@@ -56,8 +56,7 @@ komodo_service_file_template: "periphery.service.j2"
 komodo_service_path: "{{ komodo_service_dir }}/periphery.service"
 
 periphery_port: 8120
-repo_dir: "{{ komodo_home }}/.komodo/repos"
-stack_dir: "{{ komodo_home }}/.komodo/stacks"
+root_dir: "{{ komodo_home }}/.komodo"
 stacks_polling_rate: "5-sec"
 
 ssl_enabled: true
