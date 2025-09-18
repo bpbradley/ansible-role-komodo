@@ -7,12 +7,12 @@ port = {{periphery_port}}
 {#-- Only add root_dir for Komodo >= v1.17.2 --#}
 {% if (_komodo_version | regex_replace('^v', '')) is version('1.17.2', '>=') %}
 {{''}}
-root_dir = "{{ root_dir}}"
+root_dir = "{{ root_dir }}"
 {% endif %}
 
 repo_dir = "{{ repo_dir }}"
 stack_dir = "{{ stack_dir }}"
-build_dir = "{{ stack_dir }}"
+build_dir = "{{ build_dir }}"
 stats_polling_rate = "{{ stacks_polling_rate }}"
 
 {#-- Only add bind_ip for Komodo >= v1.17.1 --#}
