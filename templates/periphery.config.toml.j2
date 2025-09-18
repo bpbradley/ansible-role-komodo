@@ -4,9 +4,15 @@
 
 # General server settings
 port = {{periphery_port}}
+{% if not (repo_dir is defined or stack_dir is defined) %}
 root_directory = "{{ root_dir }}"
+{% endif %}
+{% if repo_dir is defined %}
 repo_dir = "{{ repo_dir }}"
+{% endif %}
+{% if stack_dir is defined %}
 stack_dir = "{{ stack_dir }}"
+{% endif %}
 stats_polling_rate = "{{ stacks_polling_rate }}"
 
 {#-- Only add bind_ip for Komodo >= v1.17.1 --#}
