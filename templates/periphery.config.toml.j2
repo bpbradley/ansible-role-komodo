@@ -4,13 +4,13 @@
 
 # General server settings
 port = {{periphery_port}}
-{% if not (repo_dir is defined or stack_dir is defined) %}
+{% if not (repo_dir != root_dir + '/repos' or stack_dir != root_dir + '/stacks') %}
 root_directory = "{{ root_dir }}"
 {% endif %}
-{% if repo_dir is defined %}
+{% if repo_dir != root_dir + '/repos' %}
 repo_dir = "{{ repo_dir }}"
 {% endif %}
-{% if stack_dir is defined %}
+{% if stack_dir != root_dir + '/stacks' %}
 stack_dir = "{{ stack_dir }}"
 {% endif %}
 stats_polling_rate = "{{ stacks_polling_rate }}"
