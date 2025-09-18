@@ -86,6 +86,7 @@
             status_code: 200
             return_content: true
             timeout: 15
+          delegate_to: localhost
           register: _core_version
 
         - name: Set komodo_version to Komodo Core response
