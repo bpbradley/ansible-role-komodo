@@ -4,6 +4,10 @@ StartLimitIntervalSec=15min
 StartLimitBurst=180
 
 [Service]
+{% if komodo_systemwide_service %}
+User={{ komodo_user }}
+Group={{ komodo_group }}
+{% endif %}
 Environment="HOME={{ komodo_home }}"
 Environment="UID={{ ansible_facts.getent_passwd[komodo_user].1 }}"
 Environment="GID={{ ansible_facts.getent_passwd[komodo_user].2 }}"
@@ -18,5 +22,5 @@ RestartSec=5s
 TimeoutStartSec=0
 
 [Install]
-WantedBy=default.target
+WantedBy={{ 'multi-user.target' if komodo_systemwide_service else 'default.target' }}
 

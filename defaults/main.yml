@@ -41,6 +41,11 @@ generate_server_passkey: false # Allow a generation of a random passkey
 komodo_user: "komodo"
 komodo_group: "{{ komodo_user }}"
 
+# Toggle to run as system-wide service instead of user service
+# When true: service runs system-wide with User= directive (still as komodo user)
+# When false: service runs as user service (default behavior)
+komodo_systemwide_service: false
+
 komodo_home: "/home/{{ komodo_user }}"
 komodo_bin_dir: "{{ komodo_home }}/.local/bin"
 komodo_bin_path: "{{ komodo_bin_dir }}/periphery"
@@ -50,7 +55,7 @@ komodo_config_dir: "{{ komodo_home }}/.config/komodo"
 komodo_config_file_template: "periphery.config.toml.j2"
 komodo_config_path: "{{ komodo_config_dir }}/periphery.config.toml"
 
-komodo_service_dir: "{{ komodo_home }}/.config/systemd/user"
+komodo_service_dir: "{{ '/etc/systemd/system' if komodo_systemwide_service else komodo_home + '/.config/systemd/user' }}"
 # default service template
 komodo_service_file_template: "periphery.service.j2"
 komodo_service_path: "{{ komodo_service_dir }}/periphery.service"

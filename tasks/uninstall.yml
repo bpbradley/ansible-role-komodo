@@ -2,7 +2,7 @@
 - name: Run uninstall procedure
   when: komodo_action == "uninstall"
   block:
-    - name: Stop periphery service
+    - name: Stop periphery service (user)
       become: true
       become_user: "{{ komodo_user }}"
       environment:
@@ -12,9 +12,21 @@
         state: stopped
         scope: user
       failed_when: false
-      when: komodo_user_exists
+      when:
+        - komodo_user_exists
+        - not komodo_systemwide_service
 
-    - name: Disable periphery
+    - name: Stop periphery service (system)
+      become: true
+      ansible.builtin.systemd:
+        name: periphery
+        state: stopped
+      failed_when: false
+      when:
+        - komodo_user_exists
+        - komodo_systemwide_service
+
+    - name: Disable periphery (user)
       become: true
       become_user: "{{ komodo_user }}"
       ansible.builtin.systemd:
@@ -25,7 +37,20 @@
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
       failed_when: false
       changed_when: false
-      when: komodo_user_exists
+      when:
+        - komodo_user_exists
+        - not komodo_systemwide_service
+
+    - name: Disable periphery (system)
+      become: true
+      ansible.builtin.systemd:
+        name: periphery
+        enabled: false
+      failed_when: false
+      changed_when: false
+      when:
+        - komodo_user_exists
+        - komodo_systemwide_service
 
     - name: Remove periphery unit file
       become: true
@@ -33,7 +58,7 @@
         path: "{{ komodo_service_path }}"
         state: absent
 
-    - name: Reload systemd daemon
+    - name: Reload systemd daemon (user)
       become: true
       become_user: "{{ komodo_user }}"
       ansible.builtin.systemd:
@@ -41,7 +66,17 @@
         scope: user
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
-      when: komodo_user_exists
+      when:
+        - komodo_user_exists
+        - not komodo_systemwide_service
+
+    - name: Reload systemd daemon (system)
+      become: true
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when:
+        - komodo_user_exists
+        - komodo_systemwide_service
 
     - name: Disable lingering for komodo user
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
