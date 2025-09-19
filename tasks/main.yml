@@ -55,7 +55,7 @@
 
 - name: Check for unsupported configuration
   when: (not (enable_server_management | bool)) and (
-          (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
+    (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
     )
   ansible.builtin.fail:
     msg: >
@@ -72,6 +72,8 @@
         - name: Query Core API to get Komodo version
           check_mode: false
           changed_when: false
+          delegate_to: localhost
+          run_once: true
           ansible.builtin.uri:
             url: "{{ komodo_core_url | trim('/') }}/read"
             method: POST
@@ -99,6 +101,8 @@
         - name: Query GitHub for the latest Komodo release
           check_mode: false
           changed_when: false
+          delegate_to: localhost
+          run_once: true
           ansible.builtin.uri:
             url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
             headers:
