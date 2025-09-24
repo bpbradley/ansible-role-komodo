@@ -28,9 +28,9 @@ legacy_compose_cli = false
 # Security #
 ###########
 
-ssl_enabled = {{ssl_enabled | lower}}
+ssl_enabled = {{ ssl_enabled | lower }}
 
-allowed_ips = {{komodo_allowed_ips}}
+allowed_ips = ["{{ komodo_allowed_ips }}"]
 
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
@@ -40,9 +40,9 @@ passkeys = {{ allowed_passkeys }}
 # Logging #
 ###########
 
-logging.level = "{{logging_level}}"
-logging.stdio = "{{logging_stdio}}"
-logging.opentelemetry_service_name = "{{logging_opentelemetry_service_name}}"
+logging.level = "{{ logging_level }}"
+logging.stdio = "{{ logging_stdio }}"
+logging.opentelemetry_service_name = "{{ logging_opentelemetry_service_name }}"
 
 ###########
 # SECRETS #
