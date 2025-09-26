@@ -57,6 +57,11 @@ The remaining API credentials are generated from within Komodo core in **Setting
 | **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
 | **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
 
+> [!NOTE]
+> All API Calls are delegated to localhost (and where applicable, `run_once`). This is so that komodo core does
+> not need to be accessible by the remote periphery server directly. But it does mean that
+> komodo core must be accessible from your ansible host.
+
 ## Server Management
 
 When enabled and provided with API credentials / details, the role can automatically create and update servers for you. Including the ability to 
@@ -88,8 +93,10 @@ Some additional variables to tweak settings or override default behavior.
 | **komodo\_service\_file\_template**       | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))    |
 | **komodo\_service\_path**                 | `{{ komodo_service_dir }}/periphery.service`    | Destination path of the rendered service file                     |
 | **periphery\_port**                       | `8120`                                          | TCP port the server listens on                                    |
-| **repo\_dir**                             | `{{ komodo_home }}/.komodo/repos`               | Default root for repository check-outs                            |
-| **stack\_dir**                            | `{{ komodo_home }}/.komodo/stacks`              | Default root for stack folders                                    |
+| **root\_dir**                             | `{{ komodo_home }}/.komodo`                     | Default root directory for periphery                              |
+| **repo\_dir**                             | `{{ root_dir }}/repos`                          | Default root for repository check-outs                            |
+| **stack\_dir**                            | `{{ root_dir }}/stacks`                         | Default root for stack folders                                    |
+| **build\_dir**                            | `{{ root_dir }}/build`                          | Default root for builds                                           |
 | **stacks\_polling\_rate**                 | `5-sec`                                         | Interval at which periphery polls the stack directory             |
 | **logging\_level**                        | `info`                                          | Periphery log level                                               |
 | **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
