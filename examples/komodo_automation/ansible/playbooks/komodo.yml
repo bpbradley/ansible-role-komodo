@@ -3,3 +3,12 @@
   hosts: komodo
   roles:
     - role: bpbradley.komodo
+  # This task is simply to keep the container alive for a few seconds
+  # to make it easier to capture logs.
+  post_tasks:
+    - name: Pause after run (default 10s)
+      ansible.builtin.pause:
+        seconds: "{{ pause_after_seconds | default(10) }}"
+      run_once: true
+      delegate_to: localhost
+      when: pause_after | default(false) | bool
