@@ -1,22 +1,145 @@
 ---
 - name: Update Komodo Periphery Agent
   block:
-    - name: Ensure Komodo base directory exists
-      become: true
-      ansible.builtin.file:
-        path: /etc/komodo
-        state: directory
-        mode: "0750"
+    - name: Compute whether Core API credentials are required
+      ansible.builtin.set_fact:
+        _need_core_api_creds: >-
+          {{ (enable_server_management | bool)
+            or ((komodo_version | default('') | string | lower) == 'core') }}
 
-    - name: Set ownership on Komodo base directory
-      become: true
-      ansible.builtin.file:
-        path: /etc/komodo
-        state: directory
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
-        mode: "0750"
-      when: not ansible_check_mode
+    - name: Check if Core API credentials are present
+      ansible.builtin.set_fact:
+        _have_core_api_creds: >-
+          {{
+            (komodo_core_url        | default('') | string | trim) | length > 0 and
+            (komodo_core_api_key    | default('') | string | trim) | length > 0 and
+            (komodo_core_api_secret | default('') | string | trim) | length > 0
+          }}
+
+    - name: Fail if lacking necessary API credentials
+      ansible.builtin.fail:
+        msg: >
+          Configuration needs API credentials, but they are missing.
+          Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
+          and `komodo_core_api_secret`
+      when: _need_core_api_creds and not _have_core_api_creds
+
+    - name: Check for unsupported configuration
+      when: (not (enable_server_management | bool)) and (
+        (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
+        )
+      ansible.builtin.fail:
+        msg: >
+          Setting a server passkey when `enable_server_management=false`.
+          This is not a supported configuration, either enable server management,
+          or explicitly add your server_passkey to the `komodo_passkeys` list.
+
+    - name: Resolve komodo_version
+      block:
+        - name: Handle automatic versioning with core
+          when: komodo_version | lower == "core"
+          block:
+            - name: Query Core API to get Komodo version
+              check_mode: false
+              changed_when: false
+              delegate_to: localhost
+              run_once: true
+              ansible.builtin.uri:
+                url: "{{ komodo_core_url | trim('/') }}/read"
+                method: POST
+                body_format: json
+                headers:
+                  Content-Type: application/json
+                  X-Api-Key: "{{ komodo_core_api_key }}"
+                  X-Api-Secret: "{{ komodo_core_api_secret }}"
+                body:
+                  type: GetVersion
+                  params: {}
+                status_code: 200
+                return_content: true
+                timeout: 15
+              register: _core_version
+
+            - name: Set komodo_version to Komodo Core response
+              ansible.builtin.set_fact:
+                _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
+              changed_when: false
+
+        - name: Handle automatic versioning to latest
+          when: komodo_version | lower == "latest"
+          block:
+            - name: Query GitHub for the latest Komodo release
+              check_mode: false
+              changed_when: false
+              delegate_to: localhost
+              run_once: true
+              ansible.builtin.uri:
+                url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
+                headers:
+                  Accept: application/vnd.github+json
+                return_content: true
+                status_code: 200
+                timeout: 15
+              register: _gh_release
+
+            - name: Set komodo_version to latest GitHub tag
+              ansible.builtin.set_fact:
+                _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', 'v') }}"
+              changed_when: false
+
+        - name: Determine Komodo version
+          when: _komodo_version is not defined
+          ansible.builtin.set_fact:
+            _komodo_version: "{{ komodo_version }}"
+
+        - name: Display Komodo version
+          ansible.builtin.debug:
+            msg: "Using Komodo version: {{ _komodo_version }}"
+
+    - name: Select Komodo binary
+      ansible.builtin.set_fact:
+        binary_name: >-
+          {%- if komodo_bin | length > 0 -%}
+            {{ komodo_bin }}
+          {%- elif ansible_architecture == 'aarch64' -%}
+            {{ komodo_bin_aarch64 }}
+          {%- else -%} {# x86_64 #}{%- if (_komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
+              {{ komodo_bin_x86 }}
+          {%- else -%}
+              {{ komodo_bin_x86_legacy }}
+          {%- endif -%} {%- endif -%}
+
+    - name: Normalise Komodo passkeys
+      block:
+        - name: Create allowed_passkeys
+          ansible.builtin.set_fact:
+            allowed_passkeys: >-
+              {{
+                (
+                  ([komodo_passkeys] | default([], true) | flatten)
+                  + ([passkey] if (passkey is defined and (((passkey | default('', true) | trim) | length) > 0)) else [])
+                ) | unique
+              }}
+        - name: Generate a random passkey
+          when:
+            - enable_server_management | bool
+            - generate_server_passkey | bool
+            - server_passkey is not defined or ((server_passkey | string | trim) | length == 0)
+          ansible.builtin.set_fact:
+            server_passkey: >-
+              {{
+                lookup('password',
+                '/dev/null length=32 chars=ascii_letters,digits')
+              }}
+        - name: Update allowed_passkeys with server_passkey
+          ansible.builtin.set_fact:
+            allowed_passkeys: >-
+              {{
+                (
+                  ([allowed_passkeys] | flatten)
+                  + ([server_passkey] if server_passkey else [])
+                ) | unique
+              }}
 
     - name: Ensure necessary directories
       become: true
@@ -29,6 +152,7 @@
       loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
+        - "/etc/komodo"
         - "/etc/komodo/ssl"
       when: not ansible_check_mode
 
@@ -53,6 +177,7 @@
         path: "{{ komodo_bin_path }}"
         state: absent
       become: true
+      when: not ansible_check_mode
 
     - name: Download Komodo Periphery Agent
       become: true
@@ -74,33 +199,34 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
       when: not ansible_check_mode
+  
+    - name: Ensure user systemd dirs exist
+      become: true
+      loop:
+        - "{{ komodo_home }}/.config"
+        - "{{ komodo_home }}/.config/systemd"
+        - "{{ komodo_home }}/.config/systemd/user"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+        mode: "0750"
+      when:
+        - komodo_service_scope == 'user'
 
     - name: Install Systemd Unit File
       when: not ansible_check_mode
-      block:
-        - name: Ensure systemd unit directory exists
-          become: true
-          when: komodo_service_scope == "user"
-          ansible.builtin.file:
-            path: "{{ komodo_service_dir }}"
-            state: directory
-            owner: "{{ unit_owner }}"
-            group: "{{ unit_group }}"
-            mode: "{{ unit_mode }}"
-
-        - name: Install systemd unit
-          become: true
-          ansible.builtin.template:
-            src: "{{ komodo_service_file_template }}"
-            dest: "{{ komodo_service_dir }}/periphery.service"
-            owner: "{{ unit_owner }}"
-            group: "{{ unit_group }}"
-            mode: "0644"
+      become: true
       vars:
-        _system_scope: (komodo_service_scope | default('user')) == 'system'
-        unit_owner: "{{ 'root' if _system_scope else komodo_user }}"
-        unit_group: "{{ 'root' if _system_scope else komodo_group }}"
-        unit_mode: "{{ '0755' if _system_scope else '0750' }}"
+        _system_scope: "{{ (komodo_service_scope | default('user')) == 'system' }}"
+        _service_dir: "{{ '/etc/systemd/system' if _system_scope else (komodo_home ~ '/.config/systemd/user') }}"
+      ansible.builtin.template:
+        src: "{{ komodo_service_file_template }}"
+        dest: "{{ _service_dir }}/periphery.service"
+        owner: "{{ 'root' if _system_scope else komodo_user }}"
+        group: "{{ 'root' if _system_scope else komodo_group }}"
+        mode: "0644"
 
     - name: Reload systemd
       become: true

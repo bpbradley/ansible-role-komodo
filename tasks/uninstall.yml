@@ -44,7 +44,10 @@
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
       changed_when: false
       become: true
-      when: komodo_service_scope == "user" and komodo_user_exists
+      when: 
+        - komodo_service_scope == "user"
+        - komodo_user_exists
+        - allow_modify_komodo_user | bool
 
     - name: Remove komodo directories
       become: true
@@ -63,8 +66,8 @@
         remove: true
         force: true
       become: true
-      when: komodo_delete_user | default(false)
+      when: allow_delete_komodo_user | default(false)
 
     - name: Debug message after uninstall
       ansible.builtin.debug:
-        msg: "Uninstallation of {{ komodo_user }} completed successfully! (User removed: {{ komodo_delete_user | default(false) }})"
+        msg: "Uninstallation of {{ komodo_user }} completed successfully! (User removed: {{ allow_delete_komodo_user | default(false) }})"
