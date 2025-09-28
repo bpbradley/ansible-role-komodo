@@ -151,20 +151,20 @@
             ) | unique
           }}
 
-- name: Include install tasks
-  ansible.builtin.import_tasks: install.yml
+- name: Setup Komodo User
+  ansible.builtin.include_tasks: install.yml
   when: komodo_action == "install"
 
-- name: Include update tasks
-  ansible.builtin.import_tasks: update.yml
-  when: komodo_action == "update"
+- name: Update Komodo Periphery Agent
+  ansible.builtin.include_tasks: update.yml
+  when: komodo_action in ["install","update"]
 
 - name: Komodo server update tasks
-  ansible.builtin.import_tasks: manage_server.yml
+  ansible.builtin.include_tasks: manage_server.yml
   when: komodo_action in ["install","update"]
 
 - name: Include uninstall tasks
-  ansible.builtin.import_tasks: uninstall.yml
+  ansible.builtin.include_tasks: uninstall.yml
   when: komodo_action == "uninstall"
 
 - name: Deprecation warning for passkey variable
