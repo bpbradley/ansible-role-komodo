@@ -55,10 +55,8 @@ komodo_config_dir: "{{ komodo_home }}/.config/komodo"
 komodo_config_file_template: "periphery.config.toml.j2"
 komodo_config_path: "{{ komodo_config_dir }}/periphery.config.toml"
 
-komodo_service_dir: >-
-  {{ '/etc/systemd/system'
-     if (komodo_service_scope | default('user')) == 'system'
-     else (komodo_home ~ '/.config/systemd/user') }}
+komodo_service_dir: "{{ '/etc/systemd/system' if (komodo_service_scope | default('user')) == 'system'
+                       else (komodo_home ~ '/.config/systemd/user') }}"
      
 # default service template
 komodo_service_file_template: "periphery.service.j2"
