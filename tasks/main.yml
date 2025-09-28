@@ -5,31 +5,9 @@
     state: present
   become: true
 
-- name: Detect komodo user
-  ansible.builtin.getent:
-    database: passwd
-    key: "{{ komodo_user }}"
-    fail_key: false
-  check_mode: false
-  changed_when: false
-  register: _komodo_passwd
-
-- name: Detect komodo group
-  ansible.builtin.getent:
-    database: group
-    key: "{{ komodo_group }}"
-    fail_key: false
-  check_mode: false
-  changed_when: false
-  register: _komodo_group
-
-- name: Set existence facts
-  ansible.builtin.set_fact:
-    komodo_user_exists: >-
-      {{ (_komodo_passwd.ansible_facts.getent_passwd | default({})).get(komodo_user) is not none }}
-    komodo_group_exists: >-
-      {{ (_komodo_group.ansible_facts.getent_group | default({})).get(komodo_group) is not none }}
-
+- name: Refresh Komodo user context
+  ansible.builtin.import_tasks: _user_ctx.yml
+  
 - name: Compute whether Core API credentials are required
   ansible.builtin.set_fact:
     _need_core_api_creds: >-

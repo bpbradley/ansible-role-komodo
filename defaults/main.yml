@@ -1,5 +1,10 @@
 komodo_version: "v1.19.4"
 
+# This defines the systemd service scope.
+# "user" will run the service as a user service (default, recommended)
+# "system" will run the service as a system service, running as the komodo_user
+komodo_service_scope: "user" 
+
 # You should encrypt entries with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
 # If encrypting, you must run with --ask-vault-pass or have a vault password file.
 komodo_passkeys: []
@@ -50,10 +55,13 @@ komodo_config_dir: "{{ komodo_home }}/.config/komodo"
 komodo_config_file_template: "periphery.config.toml.j2"
 komodo_config_path: "{{ komodo_config_dir }}/periphery.config.toml"
 
-komodo_service_dir: "{{ komodo_home }}/.config/systemd/user"
+komodo_service_dir: >-
+  {{ '/etc/systemd/system'
+     if (komodo_service_scope | default('user')) == 'system'
+     else (komodo_home ~ '/.config/systemd/user') }}
+     
 # default service template
 komodo_service_file_template: "periphery.service.j2"
-komodo_service_path: "{{ komodo_service_dir }}/periphery.service"
 
 periphery_port: 8120
 root_dir: "{{ komodo_home }}/.komodo"

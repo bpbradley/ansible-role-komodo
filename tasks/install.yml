@@ -18,30 +18,8 @@
         home: "{{ komodo_home }}"
       when: not komodo_user_exists | bool
 
-    - name: Refresh komodo user
-      ansible.builtin.getent:
-        database: passwd
-        key: "{{ komodo_user }}"
-        fail_key: false
-      check_mode: false
-      changed_when: false
-      register: _komodo_passwd_post
-
-    - name: Refresh komodo group
-      ansible.builtin.getent:
-        database: group
-        key: "{{ komodo_group }}"
-        fail_key: false
-      check_mode: false
-      changed_when: false
-      register: _komodo_group_post
-
-    - name: Refresh existence facts
-      ansible.builtin.set_fact:
-        komodo_user_exists: >-
-          {{ (_komodo_passwd_post.ansible_facts.getent_passwd | default({})).get(komodo_user) is not none }}
-        komodo_group_exists: >-
-          {{ (_komodo_group_post.ansible_facts.getent_group | default({})).get(komodo_group) is not none }}
+    - name: Refresh Komodo user context
+      ansible.builtin.import_tasks: _user_ctx.yml
 
     - name: Create Ansible temp directory for komodo user
       become: true
@@ -63,7 +41,6 @@
       loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
-        - "{{ komodo_service_dir }}"
       when: not ansible_check_mode
 
     - name: Ensure Komodo base directory exists
@@ -103,18 +80,18 @@
 
     - name: Enable lingering for Komodo user
       ansible.builtin.command: loginctl enable-linger {{ komodo_user }}
+      when: komodo_service_scope == "user"
       become: true
       changed_when: false
 
     - name: Stop periphery service
       become: true
-      become_user: "{{ komodo_user }}"
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         state: stopped
-        scope: user
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
       failed_when: false
       when:
         - komodo_user_exists
@@ -131,8 +108,8 @@
         url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
         mode: "0755"
-        owner: "{{ komodo_user if komodo_user_exists else omit }}"
-        group: "{{ komodo_group if komodo_group_exists else omit }}"
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
         force: true
       when:
         - komodo_user_exists
@@ -144,58 +121,68 @@
         src: "{{ komodo_config_file_template }}"
         dest: "{{ komodo_config_path }}"
         mode: "0640"
-        owner: "{{ komodo_user if komodo_user_exists else omit }}"
-        group: "{{ komodo_group if komodo_group_exists else omit }}"
-      when:
-        - komodo_user_exists
-        - not ansible_check_mode
-
-    - name: Deploy systemd user service file
-      become: true
-      ansible.builtin.template:
-        src: "{{ komodo_service_file_template }}"
-        dest: "{{ komodo_service_path }}"
-        mode: "0644"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
       when:
         - komodo_user_exists
         - not ansible_check_mode
 
+    - block:
+        - name: Ensure systemd unit directory exists
+          become: true
+          when: komodo_service_scope == "user"
+          ansible.builtin.file:
+            path: "{{ komodo_service_dir }}"
+            state: directory
+            owner: "{{ unit_owner }}"
+            group: "{{ unit_group }}"
+            mode: "{{ unit_mode }}"
+
+        - name: Install systemd unit
+          become: true
+          ansible.builtin.template:
+            src: "{{ komodo_service_file_template }}"
+            dest: "{{ komodo_service_dir }}/periphery.service"
+            owner: "{{ unit_owner }}"
+            group: "{{ unit_group }}"
+            mode: "0644"
+      vars:
+        _system_scope: (komodo_service_scope | default('user')) == 'system'
+        unit_owner: "{{ 'root' if _system_scope else komodo_user }}"
+        unit_group: "{{ 'root' if _system_scope else komodo_group }}"
+        unit_mode: "{{ '0755' if _system_scope else '0750' }}"
+
     - name: Reload user systemd
       become: true
-      become_user: "{{ komodo_user }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         daemon_reload: true
-        scope: user
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
       when:
         - komodo_user_exists
         - not ansible_check_mode
 
     - name: Enable periphery
       become: true
-      become_user: "{{ komodo_user }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         enabled: true
-        scope: user
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
       when:
         - komodo_user_exists
         - not ansible_check_mode
 
     - name: Start periphery
       become: true
-      become_user: "{{ komodo_user }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         state: started
-        scope: user
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
       when:
         - komodo_user_exists
         - not ansible_check_mode
