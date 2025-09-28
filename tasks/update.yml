@@ -199,7 +199,7 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
       when: not ansible_check_mode
-  
+
     - name: Ensure user systemd dirs exist
       become: true
       loop:

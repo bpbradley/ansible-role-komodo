@@ -70,7 +70,7 @@
             _server_address: >-
               {{ (ssl_enabled | ternary('https', 'http'))
                 ~ '://' ~ detected_advertise_ip ~ ':' ~ periphery_port }}
-    
+
     - name: Manage Server creation via Komodo Core API
       delegate_to: localhost
       block:

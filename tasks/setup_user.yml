@@ -5,7 +5,7 @@
       become: true
       ansible.builtin.group:
         name: "{{ komodo_group }}"
-      when: 
+      when:
         - not komodo_group_exists | bool
         - allow_create_komodo_user | bool
 
@@ -17,7 +17,7 @@
         shell: /usr/sbin/nologin
         create_home: true
         home: "{{ komodo_home }}"
-      when: 
+      when:
         - not komodo_group_exists | bool
         - allow_create_komodo_user | bool
 
@@ -42,6 +42,6 @@
       ansible.builtin.command: loginctl enable-linger {{ komodo_user }}
       become: true
       changed_when: false
-      when: 
+      when:
         - komodo_service_scope == "user"
         - allow_modify_komodo_user | bool

@@ -18,7 +18,7 @@
 - name: Set existence facts
   ansible.builtin.set_fact:
     komodo_user_exists: "{{ (getent_passwd | default({})).get(komodo_user) is not none }}"
-    komodo_group_exists: "{{ (getent_group  | default({})).get(komodo_group) is not none }}"
+    komodo_group_exists: "{{ (getent_group | default({})).get(komodo_group) is not none }}"
 
 - name: Build systemd context
   when: komodo_user_exists | bool

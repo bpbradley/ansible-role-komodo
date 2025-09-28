@@ -44,7 +44,7 @@
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
       changed_when: false
       become: true
-      when: 
+      when:
         - komodo_service_scope == "user"
         - komodo_user_exists
         - allow_modify_komodo_user | bool

@@ -13,7 +13,7 @@ all:
     test_server:
       ansible_host: 10.1.10.6
   vars:
-    ansible_user: actual_user_to_run_playbook_as #i.e. bbradley
+    ansible_user: actual_user_to_run_playbook_as
     # This role needs elevated privileges for some tasks.
     # remember to encrypt ansible_become_pass with vault.
     ansible_become_pass: !vault |
@@ -23,7 +23,7 @@ all:
             64613231323433373637313462633863613732653136366462313134393938623136326633346166
             3834333462333162310a313037306336613061313733363862633437376133316234326431633131
             35386565333538623231643433396334323132616438353839663534373030393266
-    # You will need to mount any ssh keys into the container, 
+    # You will need to mount any ssh keys into the container,
     # with the correct permissions for the user the container is running as
     ansible_ssh_private_key_file: /root/.ssh/id_ed25519 # i.e. (/path/to/ssh/key/in/container)
   children:
@@ -58,10 +58,10 @@ all:
         # The role will also populate the UID/GID env variables in the
         # systemd service file for you, but this is just a convenience.
         komodo_agent_secrets:
-        - name: "KOMODO_UID"
-          value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
-        - name: "KOMODO_GID"
-          value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
+          - name: "KOMODO_UID"
+            value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
+          - name: "KOMODO_GID"
+            value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
       children:
         # It isn't necessary to split the inventory up into core / periphery,
         # but it is useful for organization and I personally have other roles
@@ -86,14 +86,14 @@ all:
               # Add any additional secrets you want here, This will override
               # the group vars.
               komodo_agent_secrets:
-              - name: "KOMODO_UID"
-                value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
-              - name: "KOMODO_GID"
-                value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
-              - name: "SUPER_SECRET"
-                value: !vault |
-                  $ANSIBLE_VAULT;1.1;AES256
-                  66386439653762316464626437653766643665373063...
+                - name: "KOMODO_UID"
+                  value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
+                - name: "KOMODO_GID"
+                  value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
+                - name: "SUPER_SECRET"
+                  value: !vault |
+                    $ANSIBLE_VAULT;1.1;AES256
+                    66386439653762316464626437653766643665373063...
             test_server:
               # not necessary, as the above server is doing the exact same thing
               # more explicitly, but you can also dynamically set the allowed IP
