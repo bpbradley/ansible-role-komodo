@@ -283,6 +283,12 @@ playbook and control behavior with variables. Here is an example of doing it wit
    
 6. Run the playbook
 
+    > [!TIP]
+    > Before running the role, you can run it safely in dry-run more with `--check --diff`
+    > Note that a few tasks will error (and be ignored, not failed) in dry run mode, notably ones that require
+    > the existence of the `komodo_user` during `install`, because the roles is unable to
+    > actually create the user in a dry-run.
+
     Install using default values
 
     ```sh
