@@ -10,7 +10,6 @@
         name: periphery
         state: stopped
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      failed_when: false
       when: komodo_user_exists
 
     - name: Disable periphery
@@ -21,8 +20,6 @@
         name: periphery
         enabled: false
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      failed_when: false
-      changed_when: false
       when: komodo_user_exists
 
     - name: Remove periphery unit file
