@@ -25,7 +25,7 @@
       ansible.builtin.import_tasks: _user_ctx.yml
 
     - name: Fail if komodo user doesn't exist
-      ignore_errors: "{{ ansible_check_mode and allow_create_komodo_user }}"
+      ignore_errors: "{{ ansible_check_mode and allow_create_komodo_user }}" # noqa ignore-errors
       ansible.builtin.fail:
         msg: "Komodo user {{ komodo_user }} does not exist and could not be created."
       when:

@@ -143,7 +143,7 @@
 
     - name: Ensure necessary directories
       become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -160,7 +160,7 @@
       become: true
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.systemd:
         name: periphery
         state: stopped
@@ -173,15 +173,14 @@
       when: ansible_architecture not in ['x86_64', 'aarch64']
 
     - name: Remove old binaries
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
-      ansible.builtin.file:
-        path: "{{ komodo_bin_path }}"
-        state: absent
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+      path: "{{ komodo_bin_path }}"
+      state: absent
       become: true
 
     - name: Download Komodo Periphery Agent
       become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.get_url:
         url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
@@ -192,7 +191,7 @@
 
     - name: Deploy configuration file
       become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.template:
         src: "{{ komodo_config_file_template }}"
         dest: "{{ komodo_config_path }}"
@@ -216,7 +215,7 @@
         - komodo_service_scope == 'user'
 
     - name: Install Systemd Unit File
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       become: true
       vars:
         _system_scope: "{{ (komodo_service_scope | default('user')) == 'system' }}"
