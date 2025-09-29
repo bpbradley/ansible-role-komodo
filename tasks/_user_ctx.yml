@@ -21,14 +21,13 @@
     komodo_group_exists: "{{ (getent_group | default({})).get(komodo_group) is not none }}"
 
 - name: Build systemd context
-  when: komodo_user_exists | bool
   ansible.builtin.set_fact:
     systemd_ctx:
       user:
         become_user: "{{ komodo_user }}"
         scope: user
         environment:
-          XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+          XDG_RUNTIME_DIR: "{{ '/run/user/' ~ getent_passwd[komodo_user].1 | default(omit)}}"
       system:
         become_user: "root"
         scope: system

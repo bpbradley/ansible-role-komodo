@@ -10,7 +10,6 @@
         name: periphery
         state: stopped
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      when: komodo_user_exists
 
     - name: Disable periphery
       become: true
@@ -20,7 +19,6 @@
         name: periphery
         enabled: false
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      when: komodo_user_exists
 
     - name: Remove periphery unit file
       become: true
@@ -37,7 +35,6 @@
       ansible.builtin.systemd:
         daemon_reload: true
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      when: komodo_user_exists
 
     - name: Disable lingering for komodo user
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
@@ -45,7 +42,6 @@
       become: true
       when:
         - komodo_service_scope == "user"
-        - komodo_user_exists
         - allow_modify_komodo_user | bool
 
     - name: Remove komodo directories

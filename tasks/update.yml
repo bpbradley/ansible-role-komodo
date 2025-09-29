@@ -143,6 +143,7 @@
 
     - name: Ensure necessary directories
       become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -154,18 +155,17 @@
         - "{{ komodo_config_dir }}"
         - "/etc/komodo"
         - "/etc/komodo/ssl"
-      when: not ansible_check_mode
 
     - name: Stop periphery service
       become: true
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       ansible.builtin.systemd:
         name: periphery
         state: stopped
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
       failed_when: false
-      when: not ansible_check_mode
 
     - name: Fail if unsupported architecture
       ansible.builtin.fail:
@@ -173,14 +173,15 @@
       when: ansible_architecture not in ['x86_64', 'aarch64']
 
     - name: Remove old binaries
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       ansible.builtin.file:
         path: "{{ komodo_bin_path }}"
         state: absent
       become: true
-      when: not ansible_check_mode
 
     - name: Download Komodo Periphery Agent
       become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       ansible.builtin.get_url:
         url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
@@ -188,17 +189,16 @@
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
         force: true
-      when: not ansible_check_mode
 
     - name: Deploy configuration file
       become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       ansible.builtin.template:
         src: "{{ komodo_config_file_template }}"
         dest: "{{ komodo_config_path }}"
         mode: "0640"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
-      when: not ansible_check_mode
 
     - name: Ensure user systemd dirs exist
       become: true
@@ -216,7 +216,7 @@
         - komodo_service_scope == 'user'
 
     - name: Install Systemd Unit File
-      when: not ansible_check_mode
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       become: true
       vars:
         _system_scope: "{{ (komodo_service_scope | default('user')) == 'system' }}"
@@ -230,29 +230,29 @@
 
     - name: Reload systemd
       become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists and komodo_service_scope == 'user' }}"
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         daemon_reload: true
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      when: not ansible_check_mode
 
     - name: Enable periphery
       become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         enabled: true
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      when: not ansible_check_mode
 
     - name: Start periphery
       become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         state: started
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      when: not ansible_check_mode
