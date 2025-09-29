@@ -1,13 +1,14 @@
 # Ansible Role for Komodo
 
-This role is designed for managing systemd deployments of the [komodo](https://github.com/moghtech/komodo) periphery agent
-trying to minimize the permissions available to the service by creating a service user
-and running the systemd service as that user. The user will only have access to:
+This role is designed for managing systemd deployments of the [komodo](https://github.com/moghtech/komodo) periphery agent,
+minimizing permissions by creating a service user and running the service as that user.
+The role supports both systemd **user** and **system** scopes; in both cases the service runs as the unprivileged `komodo` user.
 
-* It's configuration files
+The user will only have access to:
+* Its configuration files
 * The periphery agent binary
-* It's ssl certificates for establishing a TLS connection with Komodo Core
-* It's repo and stacks directories, located in the komodo users home directory
+* Its SSL certificates for establishing a TLS connection with Komodo Core
+* Its repo, stacks, and build directories, located in `komodo_user` home directory by default
 
 In this way, it should have no more access to the host system than it would running
 in a docker container. But since it is running directly on the host filesystem, it should eliminate
@@ -28,6 +29,37 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 | ----------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
 | **komodo\_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
 | **komodo\_version**                       | `v1.19.4`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
+
+Note that `install` and `update` are almost identical, except that install defaults the variable `allow_create_komodo_user=true`, and it is (by default) `false` on update.
+This is so that the role can be allowed to create the komodo user on first install, but the expectation on an update is that the user exists, and so this privilege is no
+longer needed.
+
+## Komodo User Management
+
+By default, the komodo user (i.e. the user perhiphery is run as) is managed by this role, and the level of management of the `komodo_user` is influenced by the `komodo_action`
+
+| Variable                                     | Default                                | Description                                                                                                                                             |
+| -------------------------------------------- | ---------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **allow\_create\_komodo\_user**              | `true` on `install`, otherwise `false` | Allows `komodo_user` to be created. Will be created as a service account with no login, unless the user exists already in which case it wont be touched |
+| **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`. You must enable manually if using user scoped systemd and set this false |
+| **allow\_delete\_komodo\_user**              | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
+
+## Systemd Configuration
+
+This role supports running periphery under either the systemd **user** manager (i.e. `systemctl --user start periphery`) 
+or the systemd **system** manager (i.e.`systemctl start periphery`). In both cases, the service process runs as `komodo_user`.
+
+- In **user** scope, the service is managed by the per-user systemd instance and therefore *must* run as that user. 
+  To have it start at boot without a login session, **linger** will be enabled for that user (`loginctl enable-linger komodo`) if `allow_modify_komodo_user=true`,
+  which is the default.
+- In **system** scope, the unit is installed under the system manager and explicitly drops privileges to `komodo_user` via `User=` in the unit file.
+
+Least-privilege is the default, so **user** scope is recommended. For a deeper comparison, see [Systemd User vs System Units](#systemd-user-vs-system-units).
+
+| Variable                   | Default | Description                                                                 |
+|---------------------------|---------|-----------------------------------------------------------------------------|
+| **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
+
 
 ## Security / Authentication Variables
 
@@ -85,13 +117,10 @@ Some additional variables to tweak settings or override default behavior.
 | **komodo\_group**                         | `komodo`                                        | Group that owns files and runs the service                        |
 | **komodo\_home**                          | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                   |
 | **komodo\_extra\_env**                    | `[]`                                            | List (name/value pairs) of extra env vars available to periphery  |
-| **komodo\_delete\_user**                  | `None`                                          | Only when `komodo_action=uninstall`, *deletes* `komodo_user`      |
 | **komodo\_config\_dir**                   | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                   |
 | **komodo\_config\_file\_template**        | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))    |
 | **komodo\_config\_path**                  | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                      |
-| **komodo\_service\_dir**                  | `{{ komodo_home }}/.config/systemd/user`        | Directory for systemd user-mode unit files                        |
 | **komodo\_service\_file\_template**       | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))    |
-| **komodo\_service\_path**                 | `{{ komodo_service_dir }}/periphery.service`    | Destination path of the rendered service file                     |
 | **periphery\_port**                       | `8120`                                          | TCP port the server listens on                                    |
 | **root\_dir**                             | `{{ komodo_home }}/.komodo`                     | Default root directory for periphery                              |
 | **repo\_dir**                             | `{{ root_dir }}/repos`                          | Default root for repository check-outs                            |
@@ -101,6 +130,40 @@ Some additional variables to tweak settings or override default behavior.
 | **logging\_level**                        | `info`                                          | Periphery log level                                               |
 | **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
 | **logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
+
+### Systemd User vs System Units
+
+Systemd has two distinct kinds of managers for running services.
+
+- The **System Manager** (i.e. `systemctl`) which is directly started by the kernel as the first user-space process (PID 1).
+It helps to boot the system, manages networking, other system services, etc.
+- **User Managers** (i.e. `systemctl --user`) for each user on the system, which are session-scoped init systems and manage services *as the running user*
+
+They exist side-by-side for different purposes. Some of the relevant differences for this role come down to:
+
+- **Privilege / Isolation**: User services *must* run as the same user as the user manager. 
+So privilege escalation should not be possible even with misconfiguration. Processes in user scopes should have cgroup-isolation from system services.
+- **Lifecycle**: User services tie to, obviously, the users session. Running with a service account can be tricky, and it requires linger-mode to be enabled for the user
+to keep the process alive after boot. It also makes debugging a little trickier, because you need to run commands from the proper runtime environment.
+- **Dependency Separation**: Each manager has its *own targets and units*. So a user unit cannot (or should not) try to order after or depend on system targets.
+For example, in `system` mode, we can depend on `network-online.target`, but we cannot in `user` mode.
+
+There are many other subtle differences of course, but these are probably the main considerations when choosing which type of deployment makes the most sense for this role.
+
+Here is a quick comparison of how exactly the services are deployed when using this role, to understand some of the implications.
+
+|                          | **User units**                                                                                                  | **System units**                                                                      |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| Manager                  | `systemctl --user`                                                                                              | `systemctl`                                                                           |
+| Privilege                | *Can only* run as `komodo_user`                                                                                 | Runs as `komodo_user` via privilege-drop in the Unit file with `User={{komodo_user}}` |
+| Lifecycle                | User session; requires linger mode with `loginctl enable-linger komodo` (needs `allow_modify_komodo_user=true`) | Machine boot; starts via system target `multi-user.target`                            |
+| Unit locations           | `{{ komodo_home }}/.config/systemd/user/…`                                                                      | `/etc/systemd/system`                                                                 |
+| Capture Logs             | `sudo -u komodo journalctl --user -u periphery`                                                                 | `journalctl -u periphery`                                                             |
+| Manually Control Service | `sudo -u komodo XDG_RUNTIME_DIR="/run/user/$(id -u komodo)" systemctl start --user periphery`                   | `systemctl start periphery`                                                           |
+| Targets / Ordering       | Uses `default.target`, and relies on restart policy to reliably handle startup failures                         | Uses `multi-user.target` and `After=`/`Wants=network-online.target`                   |
+
+A rule of thumb would probably be to stick with `user` mode for home use, as it is unlikely you will be impacted by any of the complications associated with it.
+Otherwise, consider `system` mode when you want to minimize friction with managing the service, and have a more reliable dependency ordering.
 
 ### Automatic Versioning
 
@@ -250,7 +313,7 @@ playbook and control behavior with variables. Here is an example of doing it wit
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
     -e "komodo_action=uninstall" \
-    -e "komodo_delete_user=true" \
+    -e "allow_delete_komodo_user=true" \
     --vault-password-file .vault_pass
     ```
 
@@ -262,4 +325,4 @@ playbook and control behavior with variables. Here is an example of doing it wit
   1. Basic installation example with very little customization: [`examples/basic`](./examples/basic)
   2. Example using authentication with allowed IPs and global passkeys: [`examples/auth`](./examples/auth)
   3. Example showing server management functions and unique server passkeys: [`examples/server_management`](./examples/server_management)
-  4. (WIP) Building out full automation for komodo-managed periphery redeployment using ansible-in-docker with a custom ansible execution environment that includes this role: [`examples/komodo_automation`](./examples/komodo_automation)
+  4. Building out full automation for komodo-managed periphery redeployment using ansible-in-docker with a custom ansible execution environment that includes this role: [`examples/komodo_automation`](./examples/komodo_automation)
