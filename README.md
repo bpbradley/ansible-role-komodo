@@ -41,7 +41,7 @@ By default, the komodo user (i.e. the user perhiphery is run as) is managed by t
 | Variable                                     | Default                                | Description                                                                                                                                             |
 | -------------------------------------------- | ---------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **allow\_create\_komodo\_user**              | `true` on `install`, otherwise `false` | Allows `komodo_user` to be created. Will be created as a service account with no login, unless the user exists already in which case it wont be touched |
-| **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`. You must enable manually if using user scoped systemd and set this false |
+| **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`, and allows the role to add the user to the `docker` group                |
 | **allow\_delete\_komodo\_user**              | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
 
 ## Systemd Configuration
