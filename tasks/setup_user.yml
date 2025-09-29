@@ -29,6 +29,7 @@
         msg: "Komodo user {{ komodo_user }} does not exist and could not be created."
       when:
         - not komodo_user_exists | bool
+        - not ansible_check_mode
 
     - name: Add Komodo user to the docker group
       become: true

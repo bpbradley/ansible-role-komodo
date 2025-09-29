@@ -27,8 +27,10 @@
 
     - name: Remove periphery unit file
       become: true
+      vars:
+        _service_dir: "{{ '/etc/systemd/system' if komodo_service_scope == 'system' else (komodo_home ~ '/.config/systemd/user') }}"
       ansible.builtin.file:
-        path: "{{ komodo_service_dir }}/periphery.service"
+        path: "{{ _service_dir }}/periphery.service"
         state: absent
 
     - name: Reload systemd daemon
