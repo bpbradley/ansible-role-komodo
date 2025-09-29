@@ -174,9 +174,10 @@
 
     - name: Remove old binaries
       ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      path: "{{ komodo_bin_path }}"
-      state: absent
       become: true
+      ansible.builtin.file:
+        path: "{{ komodo_bin_path }}"
+        state: absent
 
     - name: Download Komodo Periphery Agent
       become: true
