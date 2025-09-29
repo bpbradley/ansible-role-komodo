@@ -230,7 +230,7 @@
 
     - name: Reload systemd
       become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists and komodo_service_scope == 'user' }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists and komodo_service_scope == 'user' }}" # noqa ignore-errors
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
@@ -239,7 +239,7 @@
 
     - name: Enable periphery
       become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
@@ -249,7 +249,7 @@
 
     - name: Start periphery
       become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}"
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
       environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
