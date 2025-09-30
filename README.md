@@ -32,10 +32,8 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 
 > [!NOTE]
 > `install` and `update` are almost functionally identical, except that `install`
-> by default allows creation of the `komodo_user`. `install` is essentially just a
-> convenience wrapper around `-e komodo_action=update -e allow_create_komodo_user=true`
-> See [Komodo User Management](#komodo-user-management). By default, `update` expects
-> that the `komodo_user` exists.
+> by default allows creation of the `komodo_user`.
+> See [Komodo User Management](#komodo-user-management).
 
 ## Komodo User Management
 
