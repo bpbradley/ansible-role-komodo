@@ -4,49 +4,45 @@
   block:
     - name: Stop periphery service
       become: true
-      become_user: "{{ komodo_user }}"
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         state: stopped
-        scope: user
-      failed_when: false
-      when: komodo_user_exists
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
 
     - name: Disable periphery
       become: true
-      become_user: "{{ komodo_user }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         name: periphery
         enabled: false
-        scope: user
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
-      failed_when: false
-      changed_when: false
-      when: komodo_user_exists
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
 
     - name: Remove periphery unit file
       become: true
+      vars:
+        _service_dir: "{{ '/etc/systemd/system' if komodo_service_scope == 'system' else (komodo_home ~ '/.config/systemd/user') }}"
       ansible.builtin.file:
-        path: "{{ komodo_service_path }}"
+        path: "{{ _service_dir }}/periphery.service"
         state: absent
 
     - name: Reload systemd daemon
       become: true
-      become_user: "{{ komodo_user }}"
+      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
       ansible.builtin.systemd:
         daemon_reload: true
-        scope: user
-      environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[komodo_user].1 }}"
-      when: komodo_user_exists
+        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
 
     - name: Disable lingering for komodo user
       ansible.builtin.command: loginctl disable-linger {{ komodo_user }}
       changed_when: false
       become: true
+      when:
+        - komodo_service_scope == "user"
+        - allow_modify_komodo_user | bool
 
     - name: Remove komodo directories
       become: true
@@ -56,7 +52,6 @@
       with_items:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
-        - "{{ komodo_service_dir }}"
         - "/etc/komodo/ssl"
 
     - name: Remove komodo user
@@ -66,8 +61,8 @@
         remove: true
         force: true
       become: true
-      when: komodo_delete_user | default(false)
+      when: allow_delete_komodo_user | default(false)
 
     - name: Debug message after uninstall
       ansible.builtin.debug:
-        msg: "Uninstallation of {{ komodo_user }} completed successfully! (User removed: {{ komodo_delete_user | default(false) }})"
+        msg: "Uninstallation of {{ komodo_user }} completed successfully! (User removed: {{ allow_delete_komodo_user | default(false) }})"

@@ -1,0 +1,48 @@
+---
+- name: Configure User
+  block:
+    - name: Ensure Komodo group exists
+      become: true
+      ansible.builtin.group:
+        name: "{{ komodo_group }}"
+      when:
+        - not komodo_group_exists | bool
+        - allow_create_komodo_user | bool
+
+    - name: Ensure Komodo user exists
+      become: true
+      ansible.builtin.user:
+        name: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+        shell: /usr/sbin/nologin
+        create_home: true
+        home: "{{ komodo_home }}"
+      when:
+        - not komodo_group_exists | bool
+        - allow_create_komodo_user | bool
+
+    - name: Refresh Komodo user context
+      ansible.builtin.import_tasks: _user_ctx.yml
+
+    - name: Fail if komodo user doesn't exist
+      ignore_errors: "{{ ansible_check_mode and allow_create_komodo_user }}" # noqa ignore-errors
+      ansible.builtin.fail:
+        msg: "Komodo user {{ komodo_user }} does not exist and could not be created."
+      when:
+        - not komodo_user_exists | bool
+
+    - name: Add Komodo user to the docker group
+      become: true
+      when: allow_modify_komodo_user | bool
+      ansible.builtin.user:
+        name: "{{ komodo_user }}"
+        groups: docker
+        append: true
+
+    - name: Enable lingering for Komodo user
+      ansible.builtin.command: loginctl enable-linger {{ komodo_user }}
+      become: true
+      changed_when: false
+      when:
+        - komodo_service_scope == "user"
+        - allow_modify_komodo_user | bool

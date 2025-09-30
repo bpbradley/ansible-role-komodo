@@ -1,0 +1,33 @@
+---
+- name: Refresh getent for komodo user
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ komodo_user }}"
+    fail_key: false
+  check_mode: false
+  changed_when: false
+
+- name: Refresh getent for komodo group
+  ansible.builtin.getent:
+    database: group
+    key: "{{ komodo_group }}"
+    fail_key: false
+  check_mode: false
+  changed_when: false
+
+- name: Set existence facts
+  ansible.builtin.set_fact:
+    komodo_user_exists: "{{ (getent_passwd | default({})).get(komodo_user) is not none }}"
+    komodo_group_exists: "{{ (getent_group | default({})).get(komodo_group) is not none }}"
+
+- name: Build systemd context
+  ansible.builtin.set_fact:
+    systemd_ctx:
+      user:
+        become_user: "{{ komodo_user }}"
+        scope: user
+        environment:
+          XDG_RUNTIME_DIR: "{{ '/run/user/' ~ getent_passwd[komodo_user].1 | default(omit)}}"
+      system:
+        become_user: "root"
+        scope: system

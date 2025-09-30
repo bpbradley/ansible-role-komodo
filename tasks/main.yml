@@ -5,188 +5,33 @@
     state: present
   become: true
 
-- name: Detect komodo user
-  ansible.builtin.getent:
-    database: passwd
-    key: "{{ komodo_user }}"
-    fail_key: false
-  check_mode: false
-  changed_when: false
-  register: _komodo_passwd
+- name: Build Komodo user context
+  ansible.builtin.import_tasks: _user_ctx.yml
 
-- name: Detect komodo group
-  ansible.builtin.getent:
-    database: group
-    key: "{{ komodo_group }}"
-    fail_key: false
-  check_mode: false
-  changed_when: false
-  register: _komodo_group
-
-- name: Set existence facts
-  ansible.builtin.set_fact:
-    komodo_user_exists: >-
-      {{ (_komodo_passwd.ansible_facts.getent_passwd | default({})).get(komodo_user) is not none }}
-    komodo_group_exists: >-
-      {{ (_komodo_group.ansible_facts.getent_group | default({})).get(komodo_group) is not none }}
-
-- name: Compute whether Core API credentials are required
-  ansible.builtin.set_fact:
-    _need_core_api_creds: >-
-      {{ (enable_server_management | bool)
-         or ((komodo_version | default('') | string | lower) == 'core') }}
-
-- name: Check if Core API credentials are present
-  ansible.builtin.set_fact:
-    _have_core_api_creds: >-
-      {{
-        (komodo_core_url        | default('') | string | trim) | length > 0 and
-        (komodo_core_api_key    | default('') | string | trim) | length > 0 and
-        (komodo_core_api_secret | default('') | string | trim) | length > 0
-      }}
-
-- name: Fail if lacking necessary API credentials
-  ansible.builtin.fail:
-    msg: >
-      Configuration needs API credentials, but they are missing.
-      Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
-      and `komodo_core_api_secret`
-  when: _need_core_api_creds and not _have_core_api_creds
-
-- name: Check for unsupported configuration
-  when: (not (enable_server_management | bool)) and (
-    (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
-    )
-  ansible.builtin.fail:
-    msg: >
-      Setting a server passkey when `enable_server_management=false`.
-      This is not a supported configuration, either enable server management,
-      or explicitly add your server_passkey to the `komodo_passkeys` list.
-
-- name: Resolve komodo_version
+- name: Setup Komodo User
+  ansible.builtin.include_tasks: setup_user.yml
   when: komodo_action in ["install","update"]
-  block:
-    - name: Handle automatic versioning with core
-      when: komodo_version | lower == "core"
-      block:
-        - name: Query Core API to get Komodo version
-          check_mode: false
-          changed_when: false
-          delegate_to: localhost
-          run_once: true
-          ansible.builtin.uri:
-            url: "{{ komodo_core_url | trim('/') }}/read"
-            method: POST
-            body_format: json
-            headers:
-              Content-Type: application/json
-              X-Api-Key: "{{ komodo_core_api_key }}"
-              X-Api-Secret: "{{ komodo_core_api_secret }}"
-            body:
-              type: GetVersion
-              params: {}
-            status_code: 200
-            return_content: true
-            timeout: 15
-          register: _core_version
 
-        - name: Set komodo_version to Komodo Core response
-          ansible.builtin.set_fact:
-            _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
-          changed_when: false
+- name: Create Ansible temp directory for komodo user
+  become: true
+  ansible.builtin.file:
+    path: "{{ komodo_home }}/.ansible/tmp"
+    state: directory
+    owner: "{{ komodo_user }}"
+    group: "{{ komodo_group }}"
+    mode: "0700"
+  when: komodo_user_exists | bool
 
-    - name: Handle automatic versioning to latest
-      when: komodo_version | lower == "latest"
-      block:
-        - name: Query GitHub for the latest Komodo release
-          check_mode: false
-          changed_when: false
-          delegate_to: localhost
-          run_once: true
-          ansible.builtin.uri:
-            url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
-            headers:
-              Accept: application/vnd.github+json
-            return_content: true
-            status_code: 200
-            timeout: 15
-          register: _gh_release
-
-        - name: Set komodo_version to latest GitHub tag
-          ansible.builtin.set_fact:
-            _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', 'v') }}"
-          changed_when: false
-
-    - name: Determine Komodo version
-      when: _komodo_version is not defined
-      ansible.builtin.set_fact:
-        _komodo_version: "{{ komodo_version }}"
-
-    - name: Display Komodo version
-      ansible.builtin.debug:
-        msg: "Using Komodo version: {{ _komodo_version }}"
-
-- name: Select Komodo binary
+- name: Update Komodo Periphery Agent
+  ansible.builtin.include_tasks: update.yml
   when: komodo_action in ["install","update"]
-  ansible.builtin.set_fact:
-    binary_name: >-
-      {%- if komodo_bin | length > 0 -%}
-        {{ komodo_bin }}
-      {%- elif ansible_architecture == 'aarch64' -%}
-        {{ komodo_bin_aarch64 }}
-      {%- else -%} {# x86_64 #}{%- if (_komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
-          {{ komodo_bin_x86 }}
-      {%- else -%}
-          {{ komodo_bin_x86_legacy }}
-      {%- endif -%} {%- endif -%}
-
-- name: Normalise Komodo passkeys
-  when: komodo_action in ["install","update"]
-  block:
-    - name: Create allowed_passkeys
-      ansible.builtin.set_fact:
-        allowed_passkeys: >-
-          {{
-            (
-              ([komodo_passkeys] | default([], true) | flatten)
-              + ([passkey] if (passkey is defined and (((passkey | default('', true) | trim) | length) > 0)) else [])
-            ) | unique
-          }}
-    - name: Generate a random passkey
-      when:
-        - enable_server_management | bool
-        - generate_server_passkey | bool
-        - server_passkey is not defined or ((server_passkey | string | trim) | length == 0)
-      ansible.builtin.set_fact:
-        server_passkey: >-
-          {{
-            lookup('password',
-            '/dev/null length=32 chars=ascii_letters,digits')
-          }}
-    - name: Update allowed_passkeys with server_passkey
-      ansible.builtin.set_fact:
-        allowed_passkeys: >-
-          {{
-            (
-              ([allowed_passkeys] | flatten)
-              + ([server_passkey] if server_passkey else [])
-            ) | unique
-          }}
-
-- name: Include install tasks
-  ansible.builtin.import_tasks: install.yml
-  when: komodo_action == "install"
-
-- name: Include update tasks
-  ansible.builtin.import_tasks: update.yml
-  when: komodo_action == "update"
 
 - name: Komodo server update tasks
-  ansible.builtin.import_tasks: manage_server.yml
+  ansible.builtin.include_tasks: manage_server.yml
   when: komodo_action in ["install","update"]
 
-- name: Include uninstall tasks
-  ansible.builtin.import_tasks: uninstall.yml
+- name: Periphery uninstall tasks
+  ansible.builtin.include_tasks: uninstall.yml
   when: komodo_action == "uninstall"
 
 - name: Deprecation warning for passkey variable
