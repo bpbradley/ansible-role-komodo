@@ -33,6 +33,11 @@
           Setting a server passkey when `enable_server_management=false`.
           This is not a supported configuration, either enable server management,
           or explicitly add your server_passkey to the `komodo_passkeys` list.
+  
+    - name: Fail if unsupported architecture
+      ansible.builtin.fail:
+        msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
+      when: ansible_architecture not in ['x86_64', 'aarch64']
 
     - name: Resolve komodo_version
       block:
@@ -153,6 +158,7 @@
       loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
+        - "{{ root_dir | default(omit)}}"
         - "/etc/komodo"
         - "/etc/komodo/ssl"
 
@@ -166,11 +172,6 @@
         state: stopped
         scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
       failed_when: false
-
-    - name: Fail if unsupported architecture
-      ansible.builtin.fail:
-        msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
-      when: ansible_architecture not in ['x86_64', 'aarch64']
 
     - name: Remove old binaries
       ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
