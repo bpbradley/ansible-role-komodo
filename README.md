@@ -30,9 +30,12 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 | **komodo\_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
 | **komodo\_version**                       | `v1.19.4`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
 
-Note that `install` and `update` are almost identical, except that install defaults the variable `allow_create_komodo_user=true`, and it is (by default) `false` on update.
-This is so that the role can be allowed to create the komodo user on first install, but the expectation on an update is that the user exists, and so this privilege is no
-longer needed.
+> [!NOTE]
+> `install` and `update` are almost functionally identical, except that `install`
+> by default allows creation of the `komodo_user`. `install` is essentially just a
+> convenience wrapper around `-e komodo_action=update -e allow_create_komodo_user=true`
+> See [Komodo User Management](#komodo-user-management). By default, `update` expects
+> that the `komodo_user` exists.
 
 ## Komodo User Management
 
