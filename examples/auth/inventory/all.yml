@@ -23,7 +23,7 @@ all:
           hosts:
             komodo_host1:
               # We can set a different periphery port if we want
-              periphery_port: 8199
+              komodo_periphery_port: 8199
               # Can be an internal docker IP for example if on the same host
               # You can even make this static if needed in your compose file
               # with `ipv4_address: 172.20.0.101` on its specified internal docker network
@@ -35,7 +35,7 @@ all:
               #     extra_hosts:
               #      - host.docker.internal:host-gateway
               # to our komodo core compose file.
-              server_address: https://host.docker.internal:{{ periphery_port }}
+              server_address: https://host.docker.internal:{{ komodo_periphery_port }}
               # We can bind to a particular interface, like the internal docker host gateway
               # Can figure this out with docker network inspect bridge --format '{{ (index .IPAM.Config 0).Gateway }}'
               # for example. Or check gateway for docker0 on your host, etc. But you should be able to get it

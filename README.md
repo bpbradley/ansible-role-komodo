@@ -112,25 +112,25 @@ set *per-periphery* passkeys, rather than using global ones. Currently, that abi
 
 Some additional variables to tweak settings or override default behavior.
 
-| Variable                                  | Default                                         | Description                                                       |
-| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
-| **komodo\_user**                          | `komodo`                                        | System user that owns files and runs the service                  |
-| **komodo\_group**                         | `komodo`                                        | Group that owns files and runs the service                        |
-| **komodo\_home**                          | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                   |
-| **komodo\_extra\_env**                    | `[]`                                            | List (name/value pairs) of extra env vars available to periphery  |
-| **komodo\_config\_dir**                   | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                   |
-| **komodo\_config\_file\_template**        | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))    |
-| **komodo\_config\_path**                  | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                      |
-| **komodo\_service\_file\_template**       | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))    |
-| **periphery\_port**                       | `8120`                                          | TCP port the server listens on                                    |
-| **root\_dir**                             | `{{ komodo_home }}/.komodo`                     | Default root directory for periphery                              |
-| **repo\_dir**                             | `{{ root_dir }}/repos`                          | Default root for repository check-outs                            |
-| **stack\_dir**                            | `{{ root_dir }}/stacks`                         | Default root for stack folders                                    |
-| **build\_dir**                            | `{{ root_dir }}/build`                          | Default root for builds                                           |
-| **stacks\_polling\_rate**                 | `5-sec`                                         | Interval at which periphery polls the stack directory             |
-| **logging\_level**                        | `info`                                          | Periphery log level                                               |
-| **logging\_stdio**                        | `standard`                                      | Log output format                                                 |
-| **logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
+| Variable                                          | Default                                         | Description                                                       |
+| ------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| **komodo\_user**                                  | `komodo`                                        | System user that owns files and runs the service                  |
+| **komodo\_group**                                 | `komodo`                                        | Group that owns files and runs the service                        |
+| **komodo\_home**                                  | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                   |
+| **komodo\_extra\_env**                            | `[]`                                            | List (name/value pairs) of extra env vars available to periphery  |
+| **komodo\_config\_dir**                           | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                   |
+| **komodo\_config\_file\_template**                | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))    |
+| **komodo\_config\_path**                          | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                      |
+| **komodo\_service\_file\_template**               | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))    |
+| **komodo\_periphery\_port**                       | `8120`                                          | TCP port the server listens on                                    |
+| **komodo\_root\_directory**                       | `{{ komodo_home }}/.komodo`                     | Default root directory for periphery                              |
+| **komodo\_repo\_dir**                             | `{{ komodo_root_directory }}/repos`             | Default root for repository check-outs                            |
+| **komodo\_stack\_dir**                            | `{{ komodo_root_directory }}/stacks`            | Default root for stack folders                                    |
+| **komodo\_build\_dir**                            | `{{ komodo_root_directory }}/build`             | Default root for builds                                           |
+| **komodo\_stats\_polling\_rate**                  | `5-sec`                                         | Interval at which periphery polls the stack directory             |
+| **komodo\_logging\_level**                        | `info`                                          | Periphery log level                                               |
+| **komodo\_logging\_stdio**                        | `standard`                                      | Log output format                                                 |
+| **komodo\_logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Service name reported to OpenTelemetry exporters                  |
 
 ### Systemd User vs System Units
 

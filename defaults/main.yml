@@ -65,23 +65,27 @@ komodo_config_path: "{{ komodo_config_dir }}/periphery.config.toml"
 # default service template
 komodo_service_file_template: "periphery.service.j2"
 
-periphery_port: 8120
-root_dir: "{{ komodo_home }}/.komodo"
-repo_dir: "{{ root_dir }}/repos"
-stack_dir: "{{ root_dir }}/stacks"
-build_dir: "{{ root_dir }}/build"
-stacks_polling_rate: "5-sec"
+komodo_periphery_port: "{{ periphery_port | default(8120, true) }}"
 
-ssl_enabled: true
+komodo_root_directory: "{{ root_dir | default(komodo_home ~ '/.komodo', true) }}"
+komodo_repo_dir: "{{ repo_dir  | default(komodo_root_directory ~ '/repos',  true) }}"
+komodo_stack_dir: "{{ stack_dir | default(komodo_root_directory ~ '/stacks', true) }}"
+komodo_build_dir: "{{ build_dir | default(komodo_root_directory ~ '/build',  true) }}"
 
-logging_level: "info"
-logging_stdio: "standard"
-logging_opentelemetry_service_name: "Komodo-Periphery"
+komodo_stats_polling_rate: "{{ stacks_polling_rate | default('5-sec', true) }}"
 
-# The user can override komodo_bin directly if desired
+komodo_ssl_enabled: "{{ ssl_enabled | default(true, true) }}"
+
+komodo_logging_level: "{{ logging_level | default('info', true) }}"
+komodo_logging_stdio: "{{ logging_stdio | default('standard', true) }}"
+komodo_logging_opentelemetry_service_name: "{{ logging_opentelemetry_service_name | default('Komodo-Periphery', true) }}"
+
+# Override komodo_bin name directly if needed for a custom build
 komodo_bin: ""
+# Download settings. GitHub should be used unless you are using a dev build not available on github yet.
+komodo_download_source: "github"
+komodo_download_sources:
+  github: "https://github.com/moghtech/komodo/releases/download"
+  forge: "https://forge.mogh.tech/api/packages/komodo/generic/periphery"
 
-# These variables likely should not ever be changed.
-komodo_bin_x86: "periphery-x86_64"
-komodo_bin_x86_legacy: "periphery"
-komodo_bin_aarch64: "periphery-aarch64"
+komodo_download_base_url: "{{ komodo_download_sources[komodo_download_source] }}"

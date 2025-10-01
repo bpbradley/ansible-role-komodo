@@ -102,16 +102,20 @@
             msg: "Using Komodo version: {{ _komodo_version }}"
 
     - name: Select Komodo binary
+      vars:
+        _komodo_bin_x86: "periphery-x86_64"
+        _komodo_bin_x86_legacy: "periphery"
+        _komodo_bin_aarch64: "periphery-aarch64"
       ansible.builtin.set_fact:
         binary_name: >-
           {%- if komodo_bin | length > 0 -%}
             {{ komodo_bin }}
           {%- elif ansible_architecture == 'aarch64' -%}
-            {{ komodo_bin_aarch64 }}
+            {{ _komodo_bin_aarch64 }}
           {%- else -%} {# x86_64 #}{%- if (_komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
-              {{ komodo_bin_x86 }}
+              {{ _komodo_bin_x86 }}
           {%- else -%}
-              {{ komodo_bin_x86_legacy }}
+              {{ _komodo_bin_x86_legacy }}
           {%- endif -%} {%- endif -%}
 
     - name: Normalise Komodo passkeys
@@ -158,7 +162,7 @@
       loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
-        - "{{ root_dir | default(omit) }}"
+        - "{{ komodo_root_directory | default(omit) }}"
         - "/etc/komodo"
         - "/etc/komodo/ssl"
 
@@ -184,7 +188,7 @@
       become: true
       ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.get_url:
-        url: "https://github.com/moghtech/komodo/releases/download/{{ _komodo_version }}/{{ binary_name }}"
+        url: "{{ komodo_download_base_url }}/{{ _komodo_version }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
         mode: "0755"
         owner: "{{ komodo_user }}"

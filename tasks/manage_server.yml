@@ -68,8 +68,8 @@
         - name: Set server_address to detected URL
           ansible.builtin.set_fact:
             _server_address: >-
-              {{ (ssl_enabled | ternary('https', 'http'))
-                ~ '://' ~ detected_advertise_ip ~ ':' ~ periphery_port }}
+              {{ (komodo_ssl_enabled | ternary('https', 'http'))
+                ~ '://' ~ detected_advertise_ip ~ ':' ~ komodo_periphery_port }}
 
     - name: Manage Server creation via Komodo Core API
       delegate_to: localhost
