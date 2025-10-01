@@ -57,8 +57,8 @@ or the systemd **system** manager (i.e.`systemctl start periphery`). In both cas
 
 Least-privilege is the default, so **user** scope is recommended. For a deeper comparison, see [Systemd User vs System Units](#systemd-user-vs-system-units).
 
-| Variable                   | Default | Description                                                                 |
-|---------------------------|---------|-----------------------------------------------------------------------------|
+| Variable                    | Default | Description                                                                            |
+|-----------------------------|---------|----------------------------------------------------------------------------------------|
 | **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
 
 
