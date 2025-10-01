@@ -72,7 +72,7 @@ periphery and Komodo Core. The only feature enabled by default is ssl.
 | **komodo\_passkeys**                      | `[]`    | List of passkeys the server will accept                                                                                      |
 | **komodo\_bind\_ip**                      | `[::]`  | IP address the server binds to (`0.0.0.0` to force IPv4 only)                                                                |
 | **komodo\_allowed\_ips**                  | `[]`    | IP list allowed to access periphery (empty list means all allowed)                                                           |
-| **ssl\_enabled**                          | `true`  | Enable HTTPS between core/periphery when `true`                                                                              |
+| **komodo\_ssl\_enabled**                  | `true`  | Enable HTTPS between core/periphery when `true`                                                                              |
 | **komodo\_agent\_secrets**                | `[]`    | List (of name/value pairs) for secrets only available to the agent. See [Adding Periphery Secrets](#adding-periphery-secrets)|
 
 ## API Credentials
