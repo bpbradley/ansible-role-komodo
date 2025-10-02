@@ -138,7 +138,7 @@ Systemd has two distinct kinds of managers for running services.
 
 - The **System Manager** (i.e. `systemctl`) which is directly started by the kernel as the first user-space process (PID 1).
 It helps to boot the system, manages networking, other system services, etc.
-- **User Managers** (i.e. `systemctl --user`) for each user on the system, which are session-scoped init systems and manage services *as the running user*
+- **User Managers** (i.e. `systemctl --user`) for each user on the system, which are session-scoped init systems and manages services *as the running user*
 
 They exist side-by-side for different purposes. Some of the relevant differences for this role come down to:
 

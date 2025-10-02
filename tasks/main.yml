@@ -57,7 +57,9 @@
 
 - name: Komodo server update tasks
   ansible.builtin.include_tasks: manage_server.yml
-  when: komodo_action in ["install","update"]
+  when: 
+    - komodo_action in ["install","update"]
+    - enable_server_management | bool
 
 - name: Periphery uninstall tasks
   ansible.builtin.include_tasks: uninstall.yml

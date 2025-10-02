@@ -75,10 +75,53 @@ komodo_build_dir: "{{ build_dir | default(komodo_root_directory ~ '/build',  tru
 komodo_stats_polling_rate: "{{ stacks_polling_rate | default('5-sec', true) }}"
 
 komodo_ssl_enabled: "{{ ssl_enabled | default(true, true) }}"
+komodo_ssl_key_file: ""
+komodo_ssl_cert_file: ""
 
 komodo_logging_level: "{{ logging_level | default('info', true) }}"
 komodo_logging_stdio: "{{ logging_stdio | default('standard', true) }}"
 komodo_logging_opentelemetry_service_name: "{{ logging_opentelemetry_service_name | default('Komodo-Periphery', true) }}"
+komodo_logging_otlp_endpoint: ""
+komodo_logging_pretty: false
+komodo_logging_pretty_startup_config: false
+
+komodo_disable_terminals: false
+komodo_disable_container_exec: false
+komodo_container_stats_polling_rate: "30-sec"
+komodo_legacy_compose_cli: false
+komodo_include_disk_mounts: []
+komodo_exclude_disk_mounts: []
+
+# Define periphery specific git providers
+# Example:
+# komodo_git_providers:
+#  - domain: "github.com"
+#    accounts:
+#      - username: "alice"
+#        token: !vault |
+#          $ANSIBLE_VAULT;1.1;AES256
+#          <redacted>
+#      - username: "bob"
+#        token: !vault |
+#          $ANSIBLE_VAULT;1.1;AES256
+#          <redacted>
+komodo_git_providers: []
+
+# Define periphery specific registry providers
+# Example:
+# komodo_registry_providers:
+#  - domain: "ghcr.io"
+#    organizations: "MyOrg"
+#    accounts:
+#      - username: "alice"
+#        token: !vault |
+#          $ANSIBLE_VAULT;1.1;AES256
+#          <redacted>
+#      - username: "bob"
+#        token: !vault |
+#          $ANSIBLE_VAULT;1.1;AES256
+#          <redacted>
+komodo_registry_providers: []
 
 # Override komodo_bin name directly if needed for a custom build
 komodo_bin: ""
