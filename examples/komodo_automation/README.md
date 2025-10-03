@@ -40,7 +40,7 @@ environment. Trying to debug issues with ansible-in-docker is not ideal. This sh
 
 services:
   ansible:
-    image: ghcr.io/bpbradley/ansible/komodo-ee:latest
+    image: ghcr.io/bpbradley/ansible/komodo-ee:v1.3 # or latest
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
@@ -360,7 +360,7 @@ function recapHasFailures(recap: string): boolean {
   return failed || unreachable;
 }
 
-async function waitForServerUpdate(server: Server, timeoutMs = 20000, intervalMs = 1000): Promise<boolean> {
+async function waitForServerUpdate(server: Server, timeoutMs = 40000, intervalMs = 1000): Promise<boolean> {
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
     const { version } = (await komodo.read("GetPeripheryVersion", { server: server.id })) as Types.GetPeripheryVersionResponse;
