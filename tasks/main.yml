@@ -36,47 +36,5 @@
   ansible.builtin.include_tasks: uninstall.yml
   when: komodo_action == "uninstall"
 
-- name: Compatibility checks
-  vars:
-    deprecated_vars:
-      - { old: 'passkey', new: 'komodo_passkeys' }
-      - { old: 'periphery_port', new: 'komodo_periphery_port' }
-      - { old: 'root_dir', new: 'komodo_root_directory' }
-      - { old: 'repo_dir', new: 'komodo_repo_dir' }
-      - { old: 'stack_dir', new: 'komodo_stack_dir' }
-      - { old: 'build_dir', new: 'komodo_build_dir' }
-      - { old: 'stacks_polling_rate', new: 'komodo_stats_polling_rate' }
-      - { old: 'ssl_enabled', new: 'komodo_ssl_enabled' }
-      - { old: 'logging_level', new: 'komodo_logging_level' }
-      - { old: 'logging_stdio', new: 'komodo_logging_stdio' }
-      - { old: 'logging_opentelemetry_service_name', new: 'komodo_logging_opentelemetry_service_name' }
-  block:
-    - name: Collect deprecation messages
-      ansible.builtin.set_fact:
-        _dep_msgs: >-
-          {{
-            (_dep_msgs | default([]))
-            + (
-                ["[DEPRECATION] '%s' is deprecated. Use '%s'." | format(item.old, item.new)]
-                if (vars[item.old] | default('__MISSING__')) != '__MISSING__'
-                else []
-              )
-          }}
-      loop: "{{ deprecated_vars }}"
-      loop_control:
-        label: "{{ item.old }}"
-      changed_when: false
-
-    - name: Warn on deprecated variables
-      ansible.builtin.fail:
-        msg: |
-
-          {% for m in _dep_msgs -%}
-          {{ m }}
-          {% endfor -%}
-          [WARNING]
-          This run detected use of deprecated variables (listed above).
-          Please update your playbooks or inventory to use the new variable names.
-          This run converted the old variables for you, but this will be removed in a future release.
-      ignore_errors: true # noqa ignore-errors
-      when: (_dep_msgs | default([])) | length > 0
+- name: Compatibility Checks
+  ansible.builtin.import_tasks: _compat.yml

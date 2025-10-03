@@ -7,7 +7,7 @@ komodo_service_scope: "user"
 
 # You should encrypt entries with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
 # If encrypting, you must run with --ask-vault-pass or have a vault password file.
-komodo_passkeys: []
+komodo_passkeys: "{{ passkey | default([]) }}"
 
 # New to v1.17.1 which introduces IPv6 support.
 # If you have issues, set `komodo_bind_ip` to `0.0.0.0`
