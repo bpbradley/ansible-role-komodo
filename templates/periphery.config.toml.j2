@@ -2,57 +2,123 @@
 # 🦎 PERIPHERY CONFIG 🦎 #
 ################################
 
-# General server settings
-port = {{periphery_port}}
-{#-- Only add root_dir for Komodo >= v1.17.2 --#}
-{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.2', '>=') %}
-{{''}}
-root_directory = "{{ root_dir }}"
-{% endif %}
-
-repo_dir = "{{ repo_dir }}"
-stack_dir = "{{ stack_dir }}"
-build_dir = "{{ build_dir }}"
-stats_polling_rate = "{{ stacks_polling_rate }}"
-
+port = {{komodo_periphery_port}}
 {#-- Only add bind_ip for Komodo >= v1.17.1 --#}
 {% if (_komodo_version | regex_replace('^v', '')) is version('1.17.1', '>=') %}
-{{''}}
+
 bind_ip = "{{ komodo_bind_ip }}"
 {% endif %}
+{#-- Only add root_dir for Komodo >= v1.17.2 --#}
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.2', '>=') %}
+root_directory = "{{ komodo_root_directory }}"
+{% endif %}
+repo_dir = "{{ komodo_repo_dir }}"
+stack_dir = "{{ komodo_stack_dir }}"
+build_dir = "{{ komodo_build_dir }}"
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.4', '>=') %}
+disable_terminals = {{ komodo_disable_terminals | bool | lower }}
+{% endif %}
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.5', '>=') %}
+disable_container_exec = {{ komodo_disable_container_exec | bool | lower }}
+{% endif %}
+stats_polling_rate = "{{ komodo_stats_polling_rate }}"
+container_stats_polling_rate = "{{ komodo_container_stats_polling_rate }}"
+include_disk_mounts = {{ komodo_include_disk_mounts }}
+exclude_disk_mounts = {{ komodo_exclude_disk_mounts }}
+legacy_compose_cli = {{ komodo_legacy_compose_cli | bool | lower }}
 
-# Docker CLI options
-legacy_compose_cli = false
-
-###########
-# Security #
-###########
-
-ssl_enabled = {{ssl_enabled | lower}}
+########
+# AUTH #
+########
 
 allowed_ips = {{komodo_allowed_ips}}
-
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
 {% endif %}
 
 ###########
+# Security #
+###########
+
+ssl_enabled = {{ komodo_ssl_enabled | bool | lower }}
+{% if komodo_ssl_key_file | string | trim | length > 0 -%}
+
+ssl_key_file = {{ komodo_ssl_key_file | string | tojson }}
+{%- endif %}
+
+{% if komodo_ssl_cert_file | string | trim | length > 0 -%}
+
+ssl_cert_file = {{ komodo_ssl_cert_file | string | tojson }}
+{%- endif %}
+
+
+###########
 # Logging #
 ###########
 
-logging.level = "{{logging_level}}"
-logging.stdio = "{{logging_stdio}}"
-logging.opentelemetry_service_name = "{{logging_opentelemetry_service_name}}"
+logging.level = "{{komodo_logging_level}}"
+logging.stdio = "{{komodo_logging_stdio}}"
+logging.otlp_endpoint = "{{ komodo_logging_otlp_endpoint }}"
+logging.opentelemetry_service_name = "{{komodo_logging_opentelemetry_service_name}}"
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.18.0', '>=') %}
+logging.pretty = {{ komodo_logging_pretty | bool | lower }}
+pretty_startup_config = {{ komodo_logging_pretty_startup_config | bool | lower }}
+{% endif %}
 
+{% if komodo_git_providers | length > 0 %}
+#################
+# GIT PROVIDERS #
+#################
+
+# configure Periphery based git providers
+
+{%- for provider in komodo_git_providers %}
+
+[[git_provider]]
+domain = {{ provider.domain | string | tojson }}
+accounts = [
+{% for acct in provider.accounts | default([]) %}
+  { username = {{ acct.username | string | tojson }}, token = {{ acct.token | string | tojson }} }{{ "," if not loop.last }}
+{% endfor %}
+]
+
+{%- endfor %}
+
+{%- endif %}
+
+{% if komodo_registry_providers | length > 0 -%}
+######################
+# REGISTRY PROVIDERS #
+######################
+
+# configure Periphery based registry providers
+
+{%- for reg in komodo_registry_providers %}
+
+[[docker_registry]]
+domain = {{ reg.domain | string | tojson }}
+accounts = [
+{% for acct in reg.accounts | default([]) %}
+  { username = {{ acct.username | string | tojson }}, token = {{ acct.token | string | tojson }} }{{ "," if not loop.last }}
+{% endfor %}
+]
+organizations = [
+{% for o in reg.organizations | default([]) %}
+  {{ o | string | tojson }}{{ "," if not loop.last }}
+{% endfor %}
+]
+{%- endfor %}
+
+{%- endif %}
+
+{% if komodo_agent_secrets | length > 0 %}
 ###########
 # SECRETS #
 ###########
 
-## Provide periphery-based secrets
-{% if komodo_agent_secrets | length > 0 %}
 [secrets]
-{% for secret in komodo_agent_secrets %}
-
-{{ secret.name }} = "{{ secret.value }}"
+{% for sec in komodo_agent_secrets -%}
+{{ sec.name | string }} = {{ sec.value | string | tojson }}
 {% endfor %}
+
 {% endif %}

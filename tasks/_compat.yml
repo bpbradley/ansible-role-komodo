@@ -1,0 +1,34 @@
+---
+- name: Compatibility checks
+  vars:
+    deprecated_vars:
+      - { old: 'passkey', new: 'komodo_passkeys' }
+      - { old: 'periphery_port', new: 'komodo_periphery_port' }
+      - { old: 'root_dir', new: 'komodo_root_directory' }
+      - { old: 'repo_dir', new: 'komodo_repo_dir' }
+      - { old: 'stack_dir', new: 'komodo_stack_dir' }
+      - { old: 'build_dir', new: 'komodo_build_dir' }
+      - { old: 'stacks_polling_rate', new: 'komodo_stats_polling_rate' }
+      - { old: 'ssl_enabled', new: 'komodo_ssl_enabled' }
+      - { old: 'logging_level', new: 'komodo_logging_level' }
+      - { old: 'logging_stdio', new: 'komodo_logging_stdio' }
+      - { old: 'logging_opentelemetry_service_name', new: 'komodo_logging_opentelemetry_service_name' }
+  block:
+    - name: Find deprecated vars present
+      ansible.builtin.set_fact:
+        _deprecated: >-
+          {{
+            deprecated_vars
+            | selectattr('old', 'in', (hostvars[inventory_hostname] | dict2items | map(attribute='key') | list))
+            | list
+          }}
+      changed_when: false
+
+    - name: Deprecation warnings
+      warn:
+        msg: "[DEPRECATION] {{ item.old }} is deprecated. Use {{ item.new }}."
+      when: _deprecated | length > 0
+      loop: "{{ _deprecated }}"
+      loop_control:
+        label: "{{ item.old }} -> {{ item.new }}"
+      changed_when: false

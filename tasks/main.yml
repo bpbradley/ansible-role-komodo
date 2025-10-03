@@ -28,16 +28,13 @@
 
 - name: Komodo server update tasks
   ansible.builtin.include_tasks: manage_server.yml
-  when: komodo_action in ["install","update"]
+  when:
+    - komodo_action in ["install","update"]
+    - enable_server_management | bool
 
 - name: Periphery uninstall tasks
   ansible.builtin.include_tasks: uninstall.yml
   when: komodo_action == "uninstall"
 
-- name: Deprecation warning for passkey variable
-  ansible.builtin.debug:
-    msg: >
-      [DEPRECATION WARNING] variable `passkey` (string) is deprecated.
-      Please switch to `komodo_passkeys` (list). This run converted
-      it for you, but this may be removed in a future release.
-  when: passkey is defined and (((passkey | default('', true) | trim) | length) > 0)
+- name: Compatibility Checks
+  ansible.builtin.import_tasks: _compat.yml

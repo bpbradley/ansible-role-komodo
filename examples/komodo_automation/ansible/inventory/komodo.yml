@@ -76,7 +76,7 @@ all:
               # The other servers will automatically determine their server address,
               # by detecting their route to komodo core based on the komodo_core_url.
               # This may not always work though, and so we can manually specify it like so.
-              server_address: https://host.docker.internal:{{ periphery_port }}
+              server_address: https://host.docker.internal:{{ komodo_periphery_port }}
               komodo_bind_ip: "{{ ansible_docker0.ipv4.address}}"
         periphery:
           hosts:

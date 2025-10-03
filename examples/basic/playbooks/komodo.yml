@@ -9,6 +9,6 @@
       # We can specify some additional configurations to override defaults
       # refer to the `defaults/main.yml` for more details
       komodo_periphery_port: 8199
-      stacks_polling_rate: "10-sec"
-      logging_level: "debug"
-      logging_opentelemetry_service_name: "Komodo-Periphery-Example"
+      komodo_stats_polling_rate: "10-sec"
+      komodo_logging_level: "debug"
+      komodo_opentelemetry_service_name: "Komodo-Periphery-Example"
