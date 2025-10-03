@@ -19,13 +19,13 @@
         _deprecated: >-
           {{
             deprecated_vars
-            | selectattr('old', 'in', (vars | dict2items | map(attribute='key') | list))
+            | selectattr('old', 'in', (hostvars[inventory_hostname] | dict2items | map(attribute='key') | list))
             | list
           }}
       changed_when: false
 
     - name: Deprecation warnings
-      warn: 
+      warn:
         msg: "[DEPRECATION] {{ item.old }} is deprecated. Use {{ item.new }}."
       when: _deprecated | length > 0
       loop: "{{ _deprecated }}"

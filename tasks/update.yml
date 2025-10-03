@@ -139,7 +139,7 @@
                   [komodo_passkeys] | default([], true) | flatten
                   + [server_passkey | default('')]
                 )
-                | map('string') | map('trim') 
+                | map('string') | map('trim')
                 | reject('equalto','') | unique | list
               }}
 
@@ -155,9 +155,7 @@
       loop:
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
-        - "{{ komodo_root_directory | default(omit) }}"
-        - "/etc/komodo"
-        - "/etc/komodo/ssl"
+        - "{{ komodo_root_directory }}"
 
     - name: Stop periphery service
       become: true
