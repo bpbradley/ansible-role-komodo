@@ -15,8 +15,12 @@ root_directory = "{{ komodo_root_directory }}"
 repo_dir = "{{ komodo_repo_dir }}"
 stack_dir = "{{ komodo_stack_dir }}"
 build_dir = "{{ komodo_build_dir }}"
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.4', '>=') %}
 disable_terminals = {{ komodo_disable_terminals | bool | lower }}
+{% endif %}
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.5', '>=') %}
 disable_container_exec = {{ komodo_disable_container_exec | bool | lower }}
+{% endif %}
 stats_polling_rate = "{{ komodo_stats_polling_rate }}"
 container_stats_polling_rate = "{{ komodo_container_stats_polling_rate }}"
 include_disk_mounts = {{ komodo_include_disk_mounts }}
@@ -56,8 +60,10 @@ logging.level = "{{komodo_logging_level}}"
 logging.stdio = "{{komodo_logging_stdio}}"
 logging.otlp_endpoint = "{{ komodo_logging_otlp_endpoint }}"
 logging.opentelemetry_service_name = "{{komodo_logging_opentelemetry_service_name}}"
+{% if (_komodo_version | regex_replace('^v', '')) is version('1.18.0', '>=') %}
 logging.pretty = {{ komodo_logging_pretty | bool | lower }}
 pretty_startup_config = {{ komodo_logging_pretty_startup_config | bool | lower }}
+{% endif %}
 
 {% if komodo_git_providers | length > 0 %}
 #################
