@@ -2,7 +2,7 @@
 
 services:
   ansible:
-    image: ghcr.io/bpbradley/ansible/komodo-ee:latest
+    image: ghcr.io/bpbradley/ansible/komodo-ee:v1.3 # or latest
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
