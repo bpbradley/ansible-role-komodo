@@ -57,6 +57,9 @@ or the systemd **system** manager (i.e.`systemctl start periphery`). In both cas
 
 Least-privilege is the default, so **user** scope is recommended. For a deeper comparison, see [Systemd User vs System Units](#systemd-user-vs-system-units).
 
+>[!NOTE]
+> If switching between `user` and `system` mode, you should make sure to `uninstall` with the currently installed mode set first, then `install` or `update` in the desired mode.
+
 | Variable                    | Default | Description                                                                            |
 |-----------------------------|---------|----------------------------------------------------------------------------------------|
 | **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
