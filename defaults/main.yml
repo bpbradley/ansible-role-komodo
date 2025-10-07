@@ -123,6 +123,15 @@ komodo_git_providers: []
 #          <redacted>
 komodo_registry_providers: []
 
+
+#### KOMODO V2.0.0 SETTINGS ####
+komodo_core_address: ""
+komodo_connect_as: ""
+komodo_server_enabled: "{{ not (komodo_core_address | length > 0)}}"
+komodo_private_key: ""
+komodo_core_public_key: ""
+komodo_onboarding_key: ""
+
 # Override komodo_bin name directly if needed for a custom build
 komodo_bin: ""
 # Download settings. GitHub should be used unless you are using a dev build not available on github yet.
