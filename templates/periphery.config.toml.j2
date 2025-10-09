@@ -32,29 +32,28 @@ connect_as = "{{ komodo_connect_as }}"
 onboarding_key = "{{ komodo_onboarding_key | string | trim }}"
 {% endif %}
 {% endif %}
-{% if  komodo_server_enabled %}
+{% if  komodo_server_enabled or _komodo_version is version('2.0.0', '<') %}
 ################
 # INBOUND MODE #
 ################
+
 port = {{komodo_periphery_port}}
 {% if _komodo_version is version('1.17.1', '>=') %}
 bind_ip = "{{ komodo_bind_ip }}"
 {% endif %}
 allowed_ips = {{komodo_allowed_ips}}
 ssl_enabled = {{ komodo_ssl_enabled | bool | lower }}
+{% if komodo_ssl_key_file | string | trim | length > 0 %}
+ssl_key_file = {{ komodo_ssl_key_file | string | tojson }}
+{% endif %}
+{% if komodo_ssl_cert_file | string | trim | length > 0 %}
+ssl_cert_file = {{ komodo_ssl_cert_file | string | tojson }}
+{% endif %}
 {% endif %}
 {% if _komodo_version is version('2.0.0', '>=') %}
 server_enabled = {{ komodo_server_enabled | bool | lower }}
 {% endif %}
-{% if komodo_ssl_key_file | string | trim | length > 0 -%}
 
-ssl_key_file = {{ komodo_ssl_key_file | string | tojson }}
-{%- endif %}
-
-{% if komodo_ssl_cert_file | string | trim | length > 0 -%}
-
-ssl_cert_file = {{ komodo_ssl_cert_file | string | tojson }}
-{%- endif %}
 ########
 # AUTH #
 ########
@@ -62,12 +61,10 @@ ssl_cert_file = {{ komodo_ssl_cert_file | string | tojson }}
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
 {% endif %}
-
 {% if komodo_private_key | string | trim | length > 0 %}
 private_key = {{ komodo_private_key | string | tojson }}
 {% endif %}
-
-{% if komodo_core_public_key | string | trim | length > 0 %}
+{% if komodo_core_public_key | string | trim | length > 0 and _komodo_version is version('2.0.0', '>=') %}
 core_public_key = {{ komodo_core_public_key | string | tojson }}
 {% endif %}
 
@@ -83,8 +80,8 @@ logging.opentelemetry_service_name = "{{komodo_logging_opentelemetry_service_nam
 logging.pretty = {{ komodo_logging_pretty | bool | lower }}
 pretty_startup_config = {{ komodo_logging_pretty_startup_config | bool | lower }}
 {% endif %}
-
 {% if komodo_git_providers | length > 0 %}
+
 #################
 # GIT PROVIDERS #
 #################
@@ -104,8 +101,8 @@ accounts = [
 {%- endfor %}
 
 {%- endif %}
+{% if komodo_registry_providers | length > 0 %}
 
-{% if komodo_registry_providers | length > 0 -%}
 ######################
 # REGISTRY PROVIDERS #
 ######################
