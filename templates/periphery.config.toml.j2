@@ -64,6 +64,14 @@ server_enabled = {{ komodo_server_enabled | bool | lower }}
 # AUTH #
 ########
 
+{% set allowed_passkeys =
+  (
+    [komodo_passkeys] | default([], true) | flatten
+    + [server_passkey | default('')]
+  )
+  | map('string') | map('trim')
+  | reject('equalto','') | unique | list
+%}
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
 {% endif %}
