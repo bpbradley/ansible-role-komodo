@@ -24,7 +24,13 @@ legacy_compose_cli = {{ komodo_legacy_compose_cli | bool | lower }}
 #################
 # OUTBOUND MODE #
 #################
-core_address = "{{ komodo_core_address | string | trim }}"
+core_addresses = {{
+  (
+    [komodo_core_address] | default([], true) | flatten
+  )
+  | map('string') | map('trim')
+  | reject('equalto','') | unique | list
+}}
 {% if komodo_connect_as | string | trim | length > 0 %}
 connect_as = "{{ komodo_connect_as }}"
 {% endif %}
