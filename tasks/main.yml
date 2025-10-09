@@ -12,21 +12,11 @@
   ansible.builtin.include_tasks: setup_user.yml
   when: komodo_action in ["install","update"]
 
-- name: Create Ansible temp directory for komodo user
-  become: true
-  ansible.builtin.file:
-    path: "{{ komodo_home }}/.ansible/tmp"
-    state: directory
-    owner: "{{ komodo_user }}"
-    group: "{{ komodo_group }}"
-    mode: "0700"
-  when: komodo_user_exists | bool
-
 - name: Update Komodo Periphery Agent
   ansible.builtin.include_tasks: update.yml
   when: komodo_action in ["install","update"]
 
-- name: Komodo server update tasks
+- name: Komodo server management tasks
   ansible.builtin.include_tasks: manage_server.yml
   when:
     - komodo_action in ["install","update"]
