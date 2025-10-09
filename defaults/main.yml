@@ -126,9 +126,10 @@ komodo_registry_providers: []
 
 #### KOMODO V2.0.0 SETTINGS ####
 komodo_core_address: ""
-komodo_connect_as: ""
+komodo_connect_as: "{{ ansible_hostname }}"
 komodo_server_enabled: "{{ not (komodo_core_address | length > 0)}}"
 komodo_private_key: ""
+komodo_core_public_key_file: "{{ komodo_root_directory}}/keys/core.pub"
 komodo_core_public_key: ""
 komodo_onboarding_key: ""
 

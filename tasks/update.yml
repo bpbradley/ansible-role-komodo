@@ -144,6 +144,8 @@
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
         - "{{ komodo_root_directory }}"
+        - "{{ komodo_root_directory }}/keys"
+      when: item != (komodo_root_directory ~ '/keys') or (_komodo_version is version('2.0.0','>='))
 
     - name: Stop periphery service
       become: true
@@ -188,6 +190,20 @@
         mode: "0640"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
+    
+    - name: Deploy Core Public Key File
+      become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+      ansible.builtin.template:
+        src: "core.pub.j2"
+        dest: "{{ komodo_core_public_key_file }}"
+        mode: "0640"
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+      when: 
+        - _komodo_version is version('2.0.0','>=')
+        - (komodo_core_public_key | length) > 0
+        - (komodo_core_public_key_file | length) > 0
 
     - name: Ensure user systemd dirs exist
       become: true

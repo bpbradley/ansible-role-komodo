@@ -79,7 +79,11 @@ passkeys = {{ allowed_passkeys }}
 private_key = {{ komodo_private_key | string | tojson }}
 {% endif %}
 {% if komodo_core_public_key | string | trim | length > 0 and _komodo_version is version('2.0.0', '>=') %}
+{% if komodo_core_public_key_file | string | trim | length > 0 %}
+core_public_key = {{ ("file:" ~ (komodo_core_public_key_file | string | trim)) | tojson }}
+{% else %}
 core_public_key = {{ komodo_core_public_key | string | tojson }}
+{% endif %}
 {% endif %}
 
 ###########
