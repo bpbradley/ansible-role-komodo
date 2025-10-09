@@ -177,9 +177,15 @@
 
     - name: Download Komodo Periphery Agent
       become: true
+      vars:
+        _normalized_version: "{{ _komodo_version | regex_replace('^v', '') }}"
+        _download_sources:
+          github: "https://github.com/moghtech/komodo/releases/download/v{{ _normalized_version }}"
+          forge: "https://forge.mogh.tech/api/packages/komodo/generic/periphery/{{ _normalized_version }}"
+        _download_url: "{{ _download_sources[komodo_download_source] }}"
       ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.get_url:
-        url: "{{ komodo_download_base_url }}/{{ _komodo_version }}/{{ binary_name }}"
+        url: "{{ _download_url }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
         mode: "0755"
         owner: "{{ komodo_user }}"

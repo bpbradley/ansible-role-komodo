@@ -136,8 +136,3 @@ komodo_onboarding_key: ""
 komodo_bin: ""
 # Download settings. GitHub should be used unless you are using a dev build not available on github yet.
 komodo_download_source: "github"
-komodo_download_sources:
-  github: "https://github.com/moghtech/komodo/releases/download"
-  forge: "https://forge.mogh.tech/api/packages/komodo/generic/periphery"
-
-komodo_download_base_url: "{{ komodo_download_sources[komodo_download_source] }}"

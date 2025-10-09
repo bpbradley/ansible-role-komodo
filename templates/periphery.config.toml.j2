@@ -25,16 +25,14 @@ legacy_compose_cli = {{ komodo_legacy_compose_cli | bool | lower }}
 # OUTBOUND MODE #
 #################
 core_address = "{{ komodo_core_address | string | trim }}"
-
 {% if komodo_connect_as | string | trim | length > 0 %}
 connect_as = "{{ komodo_connect_as }}"
 {% endif %}
-
 {% if komodo_onboarding_key | string | trim | length > 0 %}
 onboarding_key = "{{ komodo_onboarding_key | string | trim }}"
 {% endif %}
-
-{% else %}
+{% endif %}
+{% if  komodo_server_enabled %}
 ################
 # INBOUND MODE #
 ################
