@@ -2,23 +2,16 @@
 # 🦎 PERIPHERY CONFIG 🦎 #
 ################################
 
-port = {{komodo_periphery_port}}
-{#-- Only add bind_ip for Komodo >= v1.17.1 --#}
-{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.1', '>=') %}
-
-bind_ip = "{{ komodo_bind_ip }}"
-{% endif %}
-{#-- Only add root_dir for Komodo >= v1.17.2 --#}
-{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.2', '>=') %}
+{% if _komodo_version is version('1.17.2', '>=') %}
 root_directory = "{{ komodo_root_directory }}"
 {% endif %}
 repo_dir = "{{ komodo_repo_dir }}"
 stack_dir = "{{ komodo_stack_dir }}"
 build_dir = "{{ komodo_build_dir }}"
-{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.4', '>=') %}
+{% if _komodo_version is version('1.17.4', '>=') %}
 disable_terminals = {{ komodo_disable_terminals | bool | lower }}
 {% endif %}
-{% if (_komodo_version | regex_replace('^v', '')) is version('1.17.5', '>=') %}
+{% if _komodo_version is version('1.17.5', '>=') %}
 disable_container_exec = {{ komodo_disable_container_exec | bool | lower }}
 {% endif %}
 stats_polling_rate = "{{ komodo_stats_polling_rate }}"
@@ -27,30 +20,71 @@ include_disk_mounts = {{ komodo_include_disk_mounts }}
 exclude_disk_mounts = {{ komodo_exclude_disk_mounts }}
 legacy_compose_cli = {{ komodo_legacy_compose_cli | bool | lower }}
 
+{% if komodo_core_address | string | trim | length > 0 and _komodo_version is version('2.0.0', '>=') %}
+#################
+# OUTBOUND MODE #
+#################
+core_addresses = {{
+  (
+    [komodo_core_address] | default([], true) | flatten
+  )
+  | map('string') | map('trim')
+  | reject('equalto','') | unique | list
+}}
+{% if komodo_connect_as | string | trim | length > 0 %}
+connect_as = "{{ komodo_connect_as }}"
+{% endif %}
+{% if komodo_onboarding_key | string | trim | length > 0 %}
+onboarding_key = "{{ komodo_onboarding_key | string | trim }}"
+{% endif %}
+{% endif %}
+{% if  komodo_server_enabled or _komodo_version is version('2.0.0', '<') %}
+################
+# INBOUND MODE #
+################
+
+port = {{komodo_periphery_port}}
+{% if _komodo_version is version('1.17.1', '>=') %}
+bind_ip = "{{ komodo_bind_ip }}"
+{% endif %}
+allowed_ips = {{komodo_allowed_ips}}
+ssl_enabled = {{ komodo_ssl_enabled | bool | lower }}
+{% if komodo_ssl_key_file | string | trim | length > 0 %}
+ssl_key_file = {{ komodo_ssl_key_file | string | tojson }}
+{% endif %}
+{% if komodo_ssl_cert_file | string | trim | length > 0 %}
+ssl_cert_file = {{ komodo_ssl_cert_file | string | tojson }}
+{% endif %}
+{% endif %}
+{% if _komodo_version is version('2.0.0', '>=') %}
+server_enabled = {{ komodo_server_enabled | bool | lower }}
+{% endif %}
+
 ########
 # AUTH #
 ########
 
-allowed_ips = {{komodo_allowed_ips}}
+{% set allowed_passkeys =
+  (
+    [komodo_passkeys] | default([], true) | flatten
+    + [server_passkey | default('')]
+  )
+  | map('string') | map('trim')
+  | reject('equalto','') | unique | list
+%}
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
 {% endif %}
-
-###########
-# Security #
-###########
-
-ssl_enabled = {{ komodo_ssl_enabled | bool | lower }}
-{% if komodo_ssl_key_file | string | trim | length > 0 -%}
-
-ssl_key_file = {{ komodo_ssl_key_file | string | tojson }}
-{%- endif %}
-
-{% if komodo_ssl_cert_file | string | trim | length > 0 -%}
-
-ssl_cert_file = {{ komodo_ssl_cert_file | string | tojson }}
-{%- endif %}
-
+{% if komodo_private_key | string | trim | length > 0 %}
+private_key = {{ komodo_private_key | string | tojson }}
+{% endif %}
+{% if komodo_core_public_key | string | trim | length > 0 and _komodo_version is version('2.0.0', '>=') %}
+{% if komodo_core_public_key_file | string | trim | length > 0 %}
+core_public_key = {{ ("file:" ~ (komodo_core_public_key_file | string | trim)) | tojson }}
+{% else %}
+core_public_key = {{ komodo_core_public_key | string | tojson }}
+{% endif %}
+{% endif %}
 
 ###########
 # Logging #
@@ -60,12 +94,12 @@ logging.level = "{{komodo_logging_level}}"
 logging.stdio = "{{komodo_logging_stdio}}"
 logging.otlp_endpoint = "{{ komodo_logging_otlp_endpoint }}"
 logging.opentelemetry_service_name = "{{komodo_logging_opentelemetry_service_name}}"
-{% if (_komodo_version | regex_replace('^v', '')) is version('1.18.0', '>=') %}
+{% if _komodo_version is version('1.18.0', '>=') %}
 logging.pretty = {{ komodo_logging_pretty | bool | lower }}
 pretty_startup_config = {{ komodo_logging_pretty_startup_config | bool | lower }}
 {% endif %}
-
 {% if komodo_git_providers | length > 0 %}
+
 #################
 # GIT PROVIDERS #
 #################
@@ -85,8 +119,8 @@ accounts = [
 {%- endfor %}
 
 {%- endif %}
+{% if komodo_registry_providers | length > 0 %}
 
-{% if komodo_registry_providers | length > 0 -%}
 ######################
 # REGISTRY PROVIDERS #
 ######################

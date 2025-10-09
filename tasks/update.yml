@@ -67,7 +67,7 @@
 
             - name: Set komodo_version to Komodo Core response
               ansible.builtin.set_fact:
-                _komodo_version: "v{{ (_core_version.json.version | regex_replace('^v', '')) }}"
+                _komodo_version: "{{ (_core_version.json.version | regex_replace('^v', '')) }}"
               changed_when: false
 
         - name: Handle automatic versioning to latest
@@ -89,18 +89,17 @@
 
             - name: Set komodo_version to latest GitHub tag
               ansible.builtin.set_fact:
-                _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', 'v') }}"
+                _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', '') }}"
               changed_when: false
 
         - name: Determine Komodo version
           when: _komodo_version is not defined
           ansible.builtin.set_fact:
-            _komodo_version: "{{ komodo_version }}"
+            _komodo_version: "{{ komodo_version | regex_replace('^v', '') }}"
 
         - name: Display Komodo version
           ansible.builtin.debug:
             msg: "Using Komodo version: {{ _komodo_version }}"
-
     - name: Select Komodo binary
       vars:
         _komodo_bin_x86: "periphery-x86_64"
@@ -112,7 +111,7 @@
             {{ komodo_bin }}
           {%- elif ansible_architecture == 'aarch64' -%}
             {{ _komodo_bin_aarch64 }}
-          {%- else -%} {# x86_64 #}{%- if (_komodo_version | regex_replace('^v', '')) is version('1.16.12', '>=') -%}
+          {%- else -%} {# x86_64 #}{%- if _komodo_version is version('1.16.12', '>=') -%}
               {{ _komodo_bin_x86 }}
           {%- else -%}
               {{ _komodo_bin_x86_legacy }}
@@ -131,17 +130,6 @@
                 lookup('password',
                 '/dev/null length=32 chars=ascii_letters,digits')
               }}
-        - name: Build allowed_passkeys
-          ansible.builtin.set_fact:
-            allowed_passkeys: >-
-              {{
-                (
-                  [komodo_passkeys] | default([], true) | flatten
-                  + [server_passkey | default('')]
-                )
-                | map('string') | map('trim')
-                | reject('equalto','') | unique | list
-              }}
 
     - name: Ensure necessary directories
       become: true
@@ -156,6 +144,8 @@
         - "{{ komodo_bin_dir }}"
         - "{{ komodo_config_dir }}"
         - "{{ komodo_root_directory }}"
+        - "{{ komodo_root_directory }}/keys"
+      when: item != (komodo_root_directory ~ '/keys') or (_komodo_version is version('2.0.0','>='))
 
     - name: Stop periphery service
       become: true
@@ -177,9 +167,14 @@
 
     - name: Download Komodo Periphery Agent
       become: true
+      vars:
+        _download_sources:
+          github: "https://github.com/moghtech/komodo/releases/download/v{{ _komodo_version }}"
+          forge: "https://forge.mogh.tech/api/packages/komodo/generic/periphery/{{ _komodo_version }}"
+        _download_url: "{{ _download_sources[komodo_download_source] }}"
       ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
       ansible.builtin.get_url:
-        url: "{{ komodo_download_base_url }}/{{ _komodo_version }}/{{ binary_name }}"
+        url: "{{ _download_url }}/{{ binary_name }}"
         dest: "{{ komodo_bin_path }}"
         mode: "0755"
         owner: "{{ komodo_user }}"
@@ -195,6 +190,20 @@
         mode: "0640"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
+    
+    - name: Deploy Core Public Key File
+      become: true
+      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+      ansible.builtin.template:
+        src: "core.pub.j2"
+        dest: "{{ komodo_core_public_key_file }}"
+        mode: "0640"
+        owner: "{{ komodo_user }}"
+        group: "{{ komodo_group }}"
+      when: 
+        - _komodo_version is version('2.0.0','>=')
+        - (komodo_core_public_key | length) > 0
+        - (komodo_core_public_key_file | length) > 0
 
     - name: Ensure user systemd dirs exist
       become: true
