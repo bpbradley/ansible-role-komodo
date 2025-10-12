@@ -61,7 +61,7 @@
         remove: true
         force: true
       become: true
-      when: allow_delete_komodo_user | default(false)
+      when: allow_delete_komodo_user | bool | default(false)
 
     - name: Debug message after uninstall
       ansible.builtin.debug:
