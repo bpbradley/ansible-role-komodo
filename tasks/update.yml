@@ -1,37 +1,4 @@
 ---
-- name: Compute whether Core API credentials are required
-  ansible.builtin.set_fact:
-    _need_core_api_creds: >-
-      {{ (enable_server_management | bool)
-        or ((komodo_version | default('') | string | lower) == 'core') }}
-
-- name: Check if Core API credentials are present
-  ansible.builtin.set_fact:
-    _have_core_api_creds: >-
-      {{
-        (komodo_core_url        | default('') | string | trim) | length > 0 and
-        (komodo_core_api_key    | default('') | string | trim) | length > 0 and
-        (komodo_core_api_secret | default('') | string | trim) | length > 0
-      }}
-
-- name: Fail if lacking necessary API credentials
-  ansible.builtin.fail:
-    msg: >
-      Configuration needs API credentials, but they are missing.
-      Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
-      and `komodo_core_api_secret`
-  when: _need_core_api_creds and not _have_core_api_creds
-
-- name: Check for unsupported configuration
-  when: (not (enable_server_management | bool)) and (
-    (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
-    )
-  ansible.builtin.fail:
-    msg: >
-      Setting a server passkey when `enable_server_management=false`.
-      This is not a supported configuration, either enable server management,
-      or explicitly add your server_passkey to the `komodo_passkeys` list.
-
 - name: Fail if unsupported architecture
   ansible.builtin.fail:
     msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
@@ -121,6 +88,8 @@
     - enable_server_management | bool
     - generate_server_passkey | bool
     - server_passkey is not defined or ((server_passkey | string | trim) | length == 0)
+    - komodo_version is version('2.0.0', '<')
+    - komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool)
   ansible.builtin.set_fact:
     server_passkey: >-
       {{
