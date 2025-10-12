@@ -126,11 +126,22 @@ komodo_registry_providers: []
 
 #### KOMODO V2.0.0 SETTINGS ####
 komodo_core_address: ""
-komodo_connect_as: "{{ ansible_hostname }}"
-komodo_server_enabled: "{{ not (komodo_core_address | length > 0)}}"
 komodo_private_key: ""
-komodo_core_public_key_file: "{{ komodo_root_directory}}/keys/core.pub"
-komodo_core_public_key: ""
+komodo_connect_as: "{{ ansible_hostname }}"
+komodo_server_enabled: >-
+  {{
+    (komodo_core_address | default('') | string | trim | length) == 0
+  }}
+allow_overwrite_key_files: false
+allow_write_keys_to_files: true
+# If we're in outbound mode, default to a file: reference.
+# The idea being that we will by default create the file, and komodo will
+# pin the core pubkey on first connection.
+komodo_core_public_key: >-
+  {{
+    komodo_server_enabled
+      | ternary('', 'file:' ~ komodo_root_directory ~ '/keys/core.pub')
+  }}
 komodo_onboarding_key: ""
 
 # Override komodo_bin name directly if needed for a custom build

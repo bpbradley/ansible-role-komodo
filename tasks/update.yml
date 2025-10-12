@@ -1,263 +1,310 @@
 ---
-- name: Update Komodo Periphery Agent
+- name: Compute whether Core API credentials are required
+  ansible.builtin.set_fact:
+    _need_core_api_creds: >-
+      {{ (enable_server_management | bool)
+        or ((komodo_version | default('') | string | lower) == 'core') }}
+
+- name: Check if Core API credentials are present
+  ansible.builtin.set_fact:
+    _have_core_api_creds: >-
+      {{
+        (komodo_core_url        | default('') | string | trim) | length > 0 and
+        (komodo_core_api_key    | default('') | string | trim) | length > 0 and
+        (komodo_core_api_secret | default('') | string | trim) | length > 0
+      }}
+
+- name: Fail if lacking necessary API credentials
+  ansible.builtin.fail:
+    msg: >
+      Configuration needs API credentials, but they are missing.
+      Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
+      and `komodo_core_api_secret`
+  when: _need_core_api_creds and not _have_core_api_creds
+
+- name: Check for unsupported configuration
+  when: (not (enable_server_management | bool)) and (
+    (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
+    )
+  ansible.builtin.fail:
+    msg: >
+      Setting a server passkey when `enable_server_management=false`.
+      This is not a supported configuration, either enable server management,
+      or explicitly add your server_passkey to the `komodo_passkeys` list.
+
+- name: Fail if unsupported architecture
+  ansible.builtin.fail:
+    msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
+  when: ansible_architecture not in ['x86_64', 'aarch64']
+
+- name: Resolve komodo_version
   block:
-    - name: Compute whether Core API credentials are required
-      ansible.builtin.set_fact:
-        _need_core_api_creds: >-
-          {{ (enable_server_management | bool)
-            or ((komodo_version | default('') | string | lower) == 'core') }}
-
-    - name: Check if Core API credentials are present
-      ansible.builtin.set_fact:
-        _have_core_api_creds: >-
-          {{
-            (komodo_core_url        | default('') | string | trim) | length > 0 and
-            (komodo_core_api_key    | default('') | string | trim) | length > 0 and
-            (komodo_core_api_secret | default('') | string | trim) | length > 0
-          }}
-
-    - name: Fail if lacking necessary API credentials
-      ansible.builtin.fail:
-        msg: >
-          Configuration needs API credentials, but they are missing.
-          Make sure to provide a valid `komodo_core_url`, `komodo_core_api_key`,
-          and `komodo_core_api_secret`
-      when: _need_core_api_creds and not _have_core_api_creds
-
-    - name: Check for unsupported configuration
-      when: (not (enable_server_management | bool)) and (
-        (server_passkey is defined) and ((server_passkey | string | trim) | length > 0)
-        )
-      ansible.builtin.fail:
-        msg: >
-          Setting a server passkey when `enable_server_management=false`.
-          This is not a supported configuration, either enable server management,
-          or explicitly add your server_passkey to the `komodo_passkeys` list.
-
-    - name: Fail if unsupported architecture
-      ansible.builtin.fail:
-        msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
-      when: ansible_architecture not in ['x86_64', 'aarch64']
-
-    - name: Resolve komodo_version
+    - name: Handle automatic versioning with core
+      when: komodo_version | lower == "core"
       block:
-        - name: Handle automatic versioning with core
-          when: komodo_version | lower == "core"
-          block:
-            - name: Query Core API to get Komodo version
-              check_mode: false
-              changed_when: false
-              delegate_to: localhost
-              run_once: true
-              ansible.builtin.uri:
-                url: "{{ komodo_core_url | trim('/') }}/read"
-                method: POST
-                body_format: json
-                headers:
-                  Content-Type: application/json
-                  X-Api-Key: "{{ komodo_core_api_key }}"
-                  X-Api-Secret: "{{ komodo_core_api_secret }}"
-                body:
-                  type: GetVersion
-                  params: {}
-                status_code: 200
-                return_content: true
-                timeout: 15
-              register: _core_version
+        - name: Query Core API to get Komodo version
+          check_mode: false
+          changed_when: false
+          delegate_to: localhost
+          run_once: true
+          ansible.builtin.uri:
+            url: "{{ komodo_core_url | trim('/') }}/read"
+            method: POST
+            body_format: json
+            headers:
+              Content-Type: application/json
+              X-Api-Key: "{{ komodo_core_api_key }}"
+              X-Api-Secret: "{{ komodo_core_api_secret }}"
+            body:
+              type: GetVersion
+              params: {}
+            status_code: 200
+            return_content: true
+            timeout: 15
+          register: _core_version
 
-            - name: Set komodo_version to Komodo Core response
-              ansible.builtin.set_fact:
-                _komodo_version: "{{ (_core_version.json.version | regex_replace('^v', '')) }}"
-              changed_when: false
-
-        - name: Handle automatic versioning to latest
-          when: komodo_version | lower == "latest"
-          block:
-            - name: Query GitHub for the latest Komodo release
-              check_mode: false
-              changed_when: false
-              delegate_to: localhost
-              run_once: true
-              ansible.builtin.uri:
-                url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
-                headers:
-                  Accept: application/vnd.github+json
-                return_content: true
-                status_code: 200
-                timeout: 15
-              register: _gh_release
-
-            - name: Set komodo_version to latest GitHub tag
-              ansible.builtin.set_fact:
-                _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', '') }}"
-              changed_when: false
-
-        - name: Determine Komodo version
-          when: _komodo_version is not defined
+        - name: Set komodo_version to Komodo Core response
           ansible.builtin.set_fact:
-            _komodo_version: "{{ komodo_version | regex_replace('^v', '') }}"
+            _komodo_version: "{{ (_core_version.json.version | regex_replace('^v', '')) }}"
+          changed_when: false
 
-        - name: Display Komodo version
-          ansible.builtin.debug:
-            msg: "Using Komodo version: {{ _komodo_version }}"
-    - name: Select Komodo binary
-      vars:
-        _komodo_bin_x86: "periphery-x86_64"
-        _komodo_bin_x86_legacy: "periphery"
-        _komodo_bin_aarch64: "periphery-aarch64"
-      ansible.builtin.set_fact:
-        binary_name: >-
-          {%- if komodo_bin | length > 0 -%}
-            {{ komodo_bin }}
-          {%- elif ansible_architecture == 'aarch64' -%}
-            {{ _komodo_bin_aarch64 }}
-          {%- else -%} {# x86_64 #}{%- if _komodo_version is version('1.16.12', '>=') -%}
-              {{ _komodo_bin_x86 }}
-          {%- else -%}
-              {{ _komodo_bin_x86_legacy }}
-          {%- endif -%} {%- endif -%}
-
-    - name: Normalise Komodo passkeys
+    - name: Handle automatic versioning to latest
+      when: komodo_version | lower == "latest"
       block:
-        - name: Generate a random passkey
-          when:
-            - enable_server_management | bool
-            - generate_server_passkey | bool
-            - server_passkey is not defined or ((server_passkey | string | trim) | length == 0)
+        - name: Query GitHub for the latest Komodo release
+          check_mode: false
+          changed_when: false
+          delegate_to: localhost
+          run_once: true
+          ansible.builtin.uri:
+            url: "https://api.github.com/repos/moghtech/komodo/releases/latest"
+            headers:
+              Accept: application/vnd.github+json
+            return_content: true
+            status_code: 200
+            timeout: 15
+          register: _gh_release
+
+        - name: Set komodo_version to latest GitHub tag
           ansible.builtin.set_fact:
-            server_passkey: >-
-              {{
-                lookup('password',
-                '/dev/null length=32 chars=ascii_letters,digits')
-              }}
+            _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', '') }}"
+          changed_when: false
 
-    - name: Ensure necessary directories
-      become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
+    - name: Determine Komodo version
+      when: _komodo_version is not defined
+      ansible.builtin.set_fact:
+        _komodo_version: "{{ komodo_version | regex_replace('^v', '') }}"
+
+    - name: Display Komodo version
+      ansible.builtin.debug:
+        msg: "Using Komodo version: {{ _komodo_version }}"
+
+- name: Select Komodo binary
+  vars:
+    _komodo_bin_x86: "periphery-x86_64"
+    _komodo_bin_x86_legacy: "periphery"
+    _komodo_bin_aarch64: "periphery-aarch64"
+  ansible.builtin.set_fact:
+    binary_name: >-
+      {%- if komodo_bin | length > 0 -%}
+        {{ komodo_bin }}
+      {%- elif ansible_architecture == 'aarch64' -%}
+        {{ _komodo_bin_aarch64 }}
+      {%- else -%} {# x86_64 #}{%- if _komodo_version is version('1.16.12', '>=') -%}
+          {{ _komodo_bin_x86 }}
+      {%- else -%}
+          {{ _komodo_bin_x86_legacy }}
+      {%- endif -%} {%- endif -%}
+
+- name: Generate a random passkey
+  when:
+    - enable_server_management | bool
+    - generate_server_passkey | bool
+    - server_passkey is not defined or ((server_passkey | string | trim) | length == 0)
+  ansible.builtin.set_fact:
+    server_passkey: >-
+      {{
+        lookup('password',
+        '/dev/null length=32 chars=ascii_letters,digits')
+      }}
+
+- name: Ensure necessary directories
+  become: true
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ komodo_user }}"
+    group: "{{ komodo_group }}"
+    mode: "0750"
+  loop:
+    - "{{ komodo_bin_dir }}"
+    - "{{ komodo_config_dir }}"
+    - "{{ komodo_root_directory }}"
+    - "{{ komodo_root_directory }}/keys"
+  when: item != (komodo_root_directory ~ '/keys') or (_komodo_version is version('2.0.0','>='))
+
+- name: Normalize core public keys
+  ansible.builtin.set_fact:
+    _normalized_core_keys: >-
+      {{
+        [komodo_core_public_key] | default([], true) | flatten
+        | map('string') | map('trim') | reject('equalto','') | unique | list
+      }}
+
+- name: Materialize Keys To Files
+  when:
+    - _komodo_version is version('2.0.0','>=')
+    - allow_write_keys_to_files | bool
+    - (_normalized_core_keys | length) > 0
+  block:
+    - name: Write Core Public Key Files
+      ansible.builtin.template:
+        src: core.pub.j2
+        dest: "{{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
-        mode: "0750"
-      loop:
-        - "{{ komodo_bin_dir }}"
-        - "{{ komodo_config_dir }}"
-        - "{{ komodo_root_directory }}"
-        - "{{ komodo_root_directory }}/keys"
-      when: item != (komodo_root_directory ~ '/keys') or (_komodo_version is version('2.0.0','>='))
-
-    - name: Stop periphery service
-      become: true
-      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
-      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      ansible.builtin.systemd:
-        name: periphery
-        state: stopped
-        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-      failed_when: false
-
-    - name: Remove old binaries
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      become: true
-      ansible.builtin.file:
-        path: "{{ komodo_bin_path }}"
-        state: absent
-
-    - name: Download Komodo Periphery Agent
-      become: true
+        mode: "0640"
+        force: "{{ allow_overwrite_key_files | bool }}"
       vars:
-        _download_sources:
-          github: "https://github.com/moghtech/komodo/releases/download/v{{ _komodo_version }}"
-          forge: "https://forge.mogh.tech/api/packages/komodo/generic/periphery/{{ _komodo_version }}"
-        _download_url: "{{ _download_sources[komodo_download_source] }}"
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      ansible.builtin.get_url:
-        url: "{{ _download_url }}/{{ binary_name }}"
-        dest: "{{ komodo_bin_path }}"
-        mode: "0755"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
-        force: true
+        _raw_core_pub_key: "{{ item }}"
+      loop: "{{ _normalized_core_keys }}"
+      loop_control:
+        index_var: idx
+      when: item is not match('^file:')
 
-    - name: Deploy configuration file
-      become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      ansible.builtin.template:
-        src: "{{ komodo_config_file_template }}"
-        dest: "{{ komodo_config_path }}"
-        mode: "0640"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
-    
-    - name: Deploy Core Public Key File
-      become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      ansible.builtin.template:
-        src: "core.pub.j2"
-        dest: "{{ komodo_core_public_key_file }}"
-        mode: "0640"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
+    - name: Write Private Key File
       when: 
-        - _komodo_version is version('2.0.0','>=')
-        - (komodo_core_public_key | length) > 0
-        - (komodo_core_public_key_file | length) > 0
-
-    - name: Ensure user systemd dirs exist
-      become: true
-      loop:
-        - "{{ komodo_home }}/.config"
-        - "{{ komodo_home }}/.config/systemd"
-        - "{{ komodo_home }}/.config/systemd/user"
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
+        - komodo_private_key | string | trim | length > 0
+        - not (komodo_private_key | string | trim) is match('^file:')
+      ansible.builtin.template:
+        src: periphery.key.j2
+        dest: "{{ komodo_root_directory }}/keys/periphery.key"
         owner: "{{ komodo_user }}"
         group: "{{ komodo_group }}"
-        mode: "0750"
-      when:
-        - komodo_service_scope == 'user'
-
-    - name: Install Systemd Unit File
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      become: true
+        mode: "0600"
+        force: "{{ allow_overwrite_key_files | bool }}"
       vars:
-        _system_scope: "{{ (komodo_service_scope | default('user')) == 'system' }}"
-        _service_dir: "{{ '/etc/systemd/system' if _system_scope else (komodo_home ~ '/.config/systemd/user') }}"
-      ansible.builtin.template:
-        src: "{{ komodo_service_file_template }}"
-        dest: "{{ _service_dir }}/periphery.service"
-        owner: "{{ 'root' if _system_scope else komodo_user }}"
-        group: "{{ 'root' if _system_scope else komodo_group }}"
-        mode: "0644"
+        _raw_komodo_private_key: "{{ komodo_private_key | string | trim }}"
 
-    - name: Reload systemd
-      become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists and komodo_service_scope == 'user' }}" # noqa ignore-errors
-      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
-      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-      ansible.builtin.systemd:
-        daemon_reload: true
-        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+    - name: Build Core Public Key References
+      ansible.builtin.set_fact:
+        _core_public_keys: >-
+          {{
+            _core_public_keys | default([])
+            + [
+                (
+                  'file:' ~ komodo_root_directory ~ '/keys/core.' ~ (idx + 1) ~ '.pub'
+                ) if not (item is match('^file:')) else item
+              ]
+          }}
+      loop: "{{ _normalized_core_keys }}"
+      loop_control:
+        index_var: idx
+        label: "pubkey[{{ idx }}] => {{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
 
-    - name: Enable periphery
-      become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
-      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-      ansible.builtin.systemd:
-        name: periphery
-        enabled: true
-        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+- name: Passthrough Normalized Keys
+  when: not (allow_write_keys_to_files | bool)
+  ansible.builtin.set_fact:
+    _core_public_keys: "{{ _normalized_core_keys }}"
 
-    - name: Start periphery
-      become: true
-      ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-      become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
-      environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-      ansible.builtin.systemd:
-        name: periphery
-        state: started
-        scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+- name: Stop periphery service
+  become: true
+  become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+  environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  ansible.builtin.systemd:
+    name: periphery
+    state: stopped
+    scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+  failed_when: false
+
+- name: Remove old binaries
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  become: true
+  ansible.builtin.file:
+    path: "{{ komodo_bin_path }}"
+    state: absent
+
+- name: Download Komodo Periphery Agent
+  become: true
+  vars:
+    _download_sources:
+      github: "https://github.com/moghtech/komodo/releases/download/v{{ _komodo_version }}"
+      forge: "https://forge.mogh.tech/api/packages/komodo/generic/periphery/{{ _komodo_version }}"
+    _download_url: "{{ _download_sources[komodo_download_source] }}"
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  ansible.builtin.get_url:
+    url: "{{ _download_url }}/{{ binary_name }}"
+    dest: "{{ komodo_bin_path }}"
+    mode: "0755"
+    owner: "{{ komodo_user }}"
+    group: "{{ komodo_group }}"
+    force: true
+
+- name: Deploy configuration file
+  become: true
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  ansible.builtin.template:
+    src: "{{ komodo_config_file_template }}"
+    dest: "{{ komodo_config_path }}"
+    mode: "0640"
+    owner: "{{ komodo_user }}"
+    group: "{{ komodo_group }}"
+
+- name: Ensure user systemd dirs exist
+  become: true
+  loop:
+    - "{{ komodo_home }}/.config"
+    - "{{ komodo_home }}/.config/systemd"
+    - "{{ komodo_home }}/.config/systemd/user"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ komodo_user }}"
+    group: "{{ komodo_group }}"
+    mode: "0750"
+  when:
+    - komodo_service_scope == 'user'
+
+- name: Install Systemd Unit File
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  become: true
+  vars:
+    _system_scope: "{{ (komodo_service_scope | default('user')) == 'system' }}"
+    _service_dir: "{{ '/etc/systemd/system' if _system_scope else (komodo_home ~ '/.config/systemd/user') }}"
+  ansible.builtin.template:
+    src: "{{ komodo_service_file_template }}"
+    dest: "{{ _service_dir }}/periphery.service"
+    owner: "{{ 'root' if _system_scope else komodo_user }}"
+    group: "{{ 'root' if _system_scope else komodo_group }}"
+    mode: "0644"
+
+- name: Reload systemd
+  become: true
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists and komodo_service_scope == 'user' }}" # noqa ignore-errors
+  become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+  environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+
+- name: Enable periphery
+  become: true
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+  environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
+  ansible.builtin.systemd:
+    name: periphery
+    enabled: true
+    scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+
+- name: Start periphery
+  become: true
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
+  environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
+  ansible.builtin.systemd:
+    name: periphery
+    state: started
+    scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
