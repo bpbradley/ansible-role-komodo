@@ -156,57 +156,66 @@
   when:
     - _komodo_version is version('2.0.0','>=')
     - allow_write_keys_to_files | bool
-    - (_normalized_core_keys | length) > 0
   block:
-    - name: Write Core Public Key Files
-      ansible.builtin.template:
-        src: core.pub.j2
-        dest: "{{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
-        mode: "0640"
-        force: "{{ allow_overwrite_key_files | bool }}"
-      vars:
-        _raw_core_pub_key: "{{ item }}"
-      loop: "{{ _normalized_core_keys }}"
-      loop_control:
-        index_var: idx
-      when: item is not match('^file:')
+    - name: Handle Core Public Key Files
+      when: (_normalized_core_keys | length) > 0
+      block:
+        - name: Write Core Public Key Files
+          ansible.builtin.template:
+            src: core.pub.j2
+            dest: "{{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
+            owner: "{{ komodo_user }}"
+            group: "{{ komodo_group }}"
+            mode: "0640"
+            force: "{{ allow_overwrite_key_files | bool }}"
+          vars:
+            _raw_core_pub_key: "{{ item }}"
+          loop: "{{ _normalized_core_keys }}"
+          loop_control:
+            index_var: idx
+          when: item is not match('^file:')
 
-    - name: Write Private Key File
+        - name: Build Core Public Key References
+          ansible.builtin.set_fact:
+            _core_public_keys: >-
+              {{
+                _core_public_keys | default([])
+                + [
+                    (
+                      'file:' ~ komodo_root_directory ~ '/keys/core.' ~ (idx + 1) ~ '.pub'
+                    ) if not (item is match('^file:')) else item
+                  ]
+              }}
+          loop: "{{ _normalized_core_keys }}"
+          loop_control:
+            index_var: idx
+            label: "pubkey[{{ idx }}] => {{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
+
+    - name: Handle Private Key File
       when: 
         - komodo_private_key | string | trim | length > 0
         - not (komodo_private_key | string | trim) is match('^file:')
-      ansible.builtin.template:
-        src: periphery.key.j2
-        dest: "{{ komodo_root_directory }}/keys/periphery.key"
-        owner: "{{ komodo_user }}"
-        group: "{{ komodo_group }}"
-        mode: "0600"
-        force: "{{ allow_overwrite_key_files | bool }}"
-      vars:
-        _raw_komodo_private_key: "{{ komodo_private_key | string | trim }}"
+      block:
+        - name: Write Private Key File
+          ansible.builtin.template:
+            src: periphery.key.j2
+            dest: "{{ komodo_root_directory }}/keys/periphery.key"
+            owner: "{{ komodo_user }}"
+            group: "{{ komodo_group }}"
+            mode: "0600"
+            force: "{{ allow_overwrite_key_files | bool }}"
+          vars:
+            _raw_komodo_private_key: "{{ komodo_private_key | string | trim }}"
 
-    - name: Build Core Public Key References
-      ansible.builtin.set_fact:
-        _core_public_keys: >-
-          {{
-            _core_public_keys | default([])
-            + [
-                (
-                  'file:' ~ komodo_root_directory ~ '/keys/core.' ~ (idx + 1) ~ '.pub'
-                ) if not (item is match('^file:')) else item
-              ]
-          }}
-      loop: "{{ _normalized_core_keys }}"
-      loop_control:
-        index_var: idx
-        label: "pubkey[{{ idx }}] => {{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
-
-- name: Passthrough Normalized Keys
-  when: not (allow_write_keys_to_files | bool)
+        - name: Set Private Key Reference
+          ansible.builtin.set_fact:
+            _periphery_private_key: "file:{{ komodo_root_directory }}/keys/periphery.key"
+      
+- name: Ensure Key References
+  when: _komodo_version is version('2.0.0','>=')
   ansible.builtin.set_fact:
-    _core_public_keys: "{{ _normalized_core_keys }}"
+    _core_public_keys: "{{ _core_public_keys | default(_normalized_core_keys) }}"
+    _periphery_private_key: "{{ _periphery_private_key | default(komodo_private_key) }}"
 
 - name: Stop periphery service
   become: true

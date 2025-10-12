@@ -75,11 +75,13 @@ server_enabled = {{ komodo_server_enabled | bool | lower }}
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
 {% endif %}
-{% if komodo_private_key | string | trim | length > 0 %}
-private_key = {{ komodo_private_key | string | tojson }}
+{% if _komodo_version is version('2.0.0','>=') %}
+{% if _periphery_private_key | string | trim | length > 0 %}
+private_key = {{ _periphery_private_key | string | tojson }}
 {% endif %}
-{% if _komodo_version is version('2.0.0','>=') and _core_public_keys %}
+{% if _core_public_keys %}
 core_public_keys = {{ _core_public_keys }}
+{% endif %}
 {% endif %}
 
 ###########
