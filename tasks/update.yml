@@ -9,7 +9,24 @@
     - name: Handle automatic versioning with core
       when: komodo_version | lower == "core"
       block:
+        - name: Try /version endpoint
+          failed_when: false
+          check_mode: false
+          changed_when: false
+          delegate_to: localhost
+          run_once: true
+          ansible.builtin.uri:
+            url: "{{ komodo_core_url | trim('/') }}/version"
+            method: GET
+            headers:
+              Content-Type: application/json
+            status_code: 200
+            return_content: true
+            timeout: 15
+          register: _core_version
+
         - name: Query Core API to get Komodo version
+          when: _core_version.status != 200
           check_mode: false
           changed_when: false
           delegate_to: localhost
