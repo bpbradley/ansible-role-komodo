@@ -192,7 +192,7 @@
             label: "pubkey[{{ idx }}] => {{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
 
     - name: Handle Private Key File
-      when: 
+      when:
         - komodo_private_key | string | trim | length > 0
         - not (komodo_private_key | string | trim) is match('^file:')
       block:
@@ -210,7 +210,7 @@
         - name: Set Private Key Reference
           ansible.builtin.set_fact:
             _periphery_private_key: "file:{{ komodo_root_directory }}/keys/periphery.key"
-      
+
 - name: Ensure Key References
   when: _komodo_version is version('2.0.0','>=')
   ansible.builtin.set_fact:
