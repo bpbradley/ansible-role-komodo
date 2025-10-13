@@ -15,6 +15,7 @@
       - { old: 'komodo_core_url', new: 'komodo_core_http_address' }
     deprecated_configs:
       - old: [passkey, komodo_passkeys, server_passkey, generate_server_passkey]
+        after_version: '2.0.0'
         note: >-
           Passkey authentication is deprecated. When able, remove these variables and
           switch to Outbound Connection (`komodo_server_enabled=false`) or use
@@ -42,7 +43,9 @@
             (_deprecated_configs | default([]))
             + [ item | combine({'hits': (item.old | intersect(_all_var_keys))}) ]
           }}
-      when: (item.old | intersect(_all_var_keys)) | length > 0
+      when:
+        - (item.old | intersect(_all_var_keys)) | length > 0
+        - item.after_version is not defined or (komodo_version is version(item.after_version, '>='))
       loop: "{{ deprecated_configs }}"
       loop_control:
         label: "{{ (item.old | intersect(_all_var_keys)) | join(', ') | default('none') }}"
