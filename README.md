@@ -80,30 +80,14 @@ periphery and Komodo Core. The only feature enabled by default is ssl.
 | **komodo\_ssl\_\cert_file**               | `None`  | Cert file used for ssl connection to core. If not provided, periphery  will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo` |
 | **komodo\_agent\_secrets**                | `[]`    | List (of name/value pairs) for secrets only available to the agent. See [Adding Periphery Secrets](#adding-periphery-secrets)                                                                                       |
 
-## API Credentials
-
-Some features, for example [automatic versioning](#automatic-versioning) and [server management](#server-management) require API credentials to be used.
-Features which rely on API credentials, when enabled, will give an error indicating that API credentials are needed if they weren't provided.
-Below are the needed credentials to access the Komodo API.
-
-The `komodo_core_url` is just the address needed to reach komodo from the target server, *which can be different for each server if needed*. 
-The remaining API credentials are generated from within Komodo core in **Settings > Profile > New Api Key +**
-
-| Variable                       | Default                    | Description                                                                                     |
-| ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
-| **komodo\_core\_url**          | `""`                       | Base URL of the Komodo Core API (e.g. `https://komodo.example.com`)                             |
-| **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
-| **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
-
-> [!NOTE]
-> All API Calls are delegated to localhost (and where applicable, `run_once`). This is so that komodo core does
-> not need to be accessible by the remote periphery server directly. But it does mean that
-> komodo core must be accessible from your ansible host.
-
 ## Server Management
 
 When enabled and provided with API credentials / details, the role can automatically create and update servers for you. Including the ability to 
-set *per-periphery* passkeys, rather than using global ones. Currently, that ability can only be done via the API. In order to use this feature, you must provide valid [API Credentials](#api-credentials)
+set *per-periphery* passkeys, rather than using global ones. Currently, that ability can only be done via the API. In order to use this feature, you must provide valid API Credentials, 
+
+>[!NOTE] 
+> You must also set `komodo_core_http_address` to the core address which is reachable from the ansible local node (because API calls are delegated to localhost).
+> i.e. `https://komodo.example.com`
 
 | Variable                       | Default                    | Description                                                                                     |
 | ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -112,6 +96,8 @@ set *per-periphery* passkeys, rather than using global ones. Currently, that abi
 | **server\_address**            | `""`                       | Public URL advertised to Core (auto-detected when blank)                                        |
 | **server\_passkey**            | `""`                       | Passkey specific to this server (merges with `komodo_passkeys` for periphery deployment.        |
 | **generate\_server\_passkey**  | `false`                    | Generate a random passkey ([See below for special notes on this](#note-on-generated-passkeys) ) |
+| **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
+| **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
 
 ## Periphery Specific Providers
 
@@ -223,7 +209,12 @@ Otherwise, consider `system` mode when you want to minimize friction with managi
 ### Automatic Versioning
 
 Set `komodo_version` to `latest` to determine the latest release from GitHub and install that. You can also specify `komodo_version=core` and the role will
-request the currently installed version on Komodo Core, and install the matching version. In order to use `core`, you must also provide valid [API Credentials](#api-credentials)
+request the currently installed version on Komodo Core, and install the matching version. In order to use `core`, you must provided a valid address to reach the `/version` endpoint for core (`v2.0.0` and later only), or if using an earlier version you must provide API credentials as in [Server Management](#server-management)
+
+| Variable                                          | Default                                         | Description                                                                                                                                                                            |
+| ------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **komodo\_core\_http\_address**                   | Tries to derive from `komodo_core_address`      | This is the http endpoint for core, reachable by ansible localhost. If none provided, but a `komodo_core_address` is for outbound mode, attempts to derive the http endpoint from that |
+
 
 ### Note on Generated Passkeys
 
