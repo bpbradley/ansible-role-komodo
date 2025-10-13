@@ -19,7 +19,7 @@
 
     - name: Extract host from Komodo Core URL
       ansible.builtin.set_fact:
-        _core_host: "{{ komodo_core_url | urlsplit('hostname') }}"
+        _core_host: "{{ komodo_core_http_address | urlsplit('hostname') }}"
 
     - name: Resolve host address
       ansible.builtin.command: getent ahosts {{ _core_host }}
@@ -75,7 +75,7 @@
       check_mode: false
       changed_when: false
       ansible.builtin.uri:
-        url: "{{ komodo_core_url | trim('/') }}/read"
+        url: "{{ komodo_core_http_address | trim('/') }}/read"
         method: POST
         headers:
           X-Api-Key: "{{ komodo_core_api_key }}"
@@ -94,7 +94,7 @@
     - name: Update server in Komodo Core
       when: not ansible_check_mode and probe.status == 200
       ansible.builtin.uri:
-        url: "{{ komodo_core_url | trim('/') }}/write"
+        url: "{{ komodo_core_http_address | trim('/') }}/write"
         method: POST
         headers:
           X-Api-Key: "{{ komodo_core_api_key }}"
@@ -116,7 +116,7 @@
     - name: Create server with Komodo Core
       when: not ansible_check_mode and probe.status == 500
       ansible.builtin.uri:
-        url: "{{ komodo_core_url | trim('/') }}/write"
+        url: "{{ komodo_core_http_address | trim('/') }}/write"
         method: POST
         headers:
           X-Api-Key: "{{ komodo_core_api_key }}"

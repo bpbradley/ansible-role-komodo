@@ -13,6 +13,7 @@
       - { old: 'logging_level', new: 'komodo_logging_level' }
       - { old: 'logging_stdio', new: 'komodo_logging_stdio' }
       - { old: 'logging_opentelemetry_service_name', new: 'komodo_logging_opentelemetry_service_name' }
+      - { old: 'komodo_core_url', new: 'komodo_core_http_address' }
   block:
     - name: Find deprecated vars present
       ansible.builtin.set_fact:

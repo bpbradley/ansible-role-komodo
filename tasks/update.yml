@@ -11,15 +11,12 @@
       block:
         - name: Try /version endpoint
           failed_when: false
-          check_mode: false
           changed_when: false
           delegate_to: localhost
           run_once: true
           ansible.builtin.uri:
-            url: "{{ komodo_core_url | trim('/') }}/version"
+            url: "{{ komodo_core_http_address | trim('/') }}/version"
             method: GET
-            headers:
-              Content-Type: application/json
             status_code: 200
             return_content: true
             timeout: 15
@@ -27,12 +24,11 @@
 
         - name: Query Core API to get Komodo version
           when: _core_version.status != 200
-          check_mode: false
           changed_when: false
           delegate_to: localhost
           run_once: true
           ansible.builtin.uri:
-            url: "{{ komodo_core_url | trim('/') }}/read"
+            url: "{{ komodo_core_http_address | trim('/') }}/read"
             method: POST
             body_format: json
             headers:
@@ -45,13 +41,21 @@
             status_code: 200
             return_content: true
             timeout: 15
-          register: _core_version
+          register: _api_core_version
 
         - name: Set komodo_version to Komodo Core response
           ansible.builtin.set_fact:
-            _komodo_version: "{{ (_core_version.json.version | regex_replace('^v', '')) }}"
+            _komodo_version: >-
+              {{
+                (
+                  _core_version.content
+                  if (_core_version.status | default(0)) == 200
+                  else (_api_core_version.json.version | default(''))
+                )
+                | string | trim | regex_replace('^v','')
+              }}
           changed_when: false
-
+          
     - name: Handle automatic versioning to latest
       when: komodo_version | lower == "latest"
       block:
