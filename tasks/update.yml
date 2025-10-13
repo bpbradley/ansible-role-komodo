@@ -55,7 +55,7 @@
                 | string | trim | regex_replace('^v','')
               }}
           changed_when: false
-          
+
     - name: Handle automatic versioning to latest
       when: komodo_version | lower == "latest"
       block:
