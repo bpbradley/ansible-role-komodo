@@ -15,7 +15,7 @@
       - { old: 'komodo_core_url', new: 'komodo_core_http_address' }
     deprecated_configs:
       - { old: ['passkey', 'komodo_passkeys', 'server_passkey', 'generate_server_passkey'], 
-          note: 'Passkey authentication is deprecated. When able, remove these variables and switch to Outbound Connection (`komodo_server_enabled=false) or use `komodo_core_public_key` with Inbound Connection.' }
+          note: 'Passkey authentication is deprecated. When able, remove these variables and switch to Outbound Connection (`komodo_server_enabled=false`) or use `komodo_core_public_key` with Inbound Connection.' }
   block:
     - name: Cache defined var names on this host
       ansible.builtin.set_fact:
