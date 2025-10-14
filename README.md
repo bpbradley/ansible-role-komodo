@@ -7,7 +7,7 @@ The role supports both systemd **user** and **system** scopes; in both cases the
 The user will only have access to:
 * Its configuration files
 * The periphery agent binary
-* Its SSL certificates for establishing a TLS connection with Komodo Core
+* Its SSL certificates/Authentication Keys for connection to Komodo Core
 * Its repo, stacks, and build directories, located in `komodo_user` home directory by default
 
 In this way, it should have no more access to the host system than it would running
@@ -16,10 +16,10 @@ the numerous edge cases which appear when running it as a docker container.
 
 ## Features
 
-1. **Install** the Komodo Periphery agent, creating and sandboxing the `komodo` user.
-2. **Update** the Komodo Periphery agent by specifying a new version.
-3. **Uninstall** the Komodo Periphery agent, optionally removing the `komodo` user and home directories.
-4. **Manage Servers** in Komodo Core directly, so that you don't have to manually add/update them in core after deployment.
+1. **Install** or **Update** Komodo Periphery as a systemd unit, with all available periphery configurations adjustable as role variables.
+1. Can **Create a komodo service user** to run the service, unless an existing user is set as a role varaible
+1. Install as a systemd **User Unit** or **System Unit**
+1. Supports clean **Uninstall** of periphery agent and removal of configuration files, and *optionally* deletion of service user.
 
 ## Required Role Variables
 
@@ -45,6 +45,61 @@ By default, the komodo user (i.e. the user perhiphery is run as) is managed by t
 | **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`, and allows the role to add the user to the `docker` group                |
 | **allow\_delete\_komodo\_user**              | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
 
+## Connection Flow Variables
+
+Introduced in Komodo 2.0.0, connection between Komodo Core and Periphery is *highly* configurable, and far more secure than in Komodo v1. In Komodo v1, *all* communication
+between Komodo Core and Periphery was **Inbound** to periphery. This means that Periphery itself must host a server, which a "server" in core is configured to reach out to
+and establish connection. Then, communication was established (usually) with ssl, and authentication required setting a passkey and IP allow list to filter out connections
+from clients that are not the intended Komodo Core. This worked, and still works in v2 for compatibility, but it carries several issues.
+
+1. The periphery host must be able to host a server, and that server must be accessible by komodo core. This often required complex overlay networks and/or VPN configurations to do securely.
+2. The passkey authentication method requires commununication of sensitive, static credentials over the network
+3. Credential separation (and credential rotation) between servers required API based automation, which carries the risk of API credential exposure
+
+To that end, Komodo 2.0.0 solves these issues by allowing an **Outbound Connection** flow, as well as completely changing how Core <-> Periphery authenticates by adopting the [Noise Protocol](https://noiseprotocol.org/noise.html),
+and more specifically, the [Noise XX Handshake](https://noiseprotocol.org/noise.html#handshake-patterns) which allows *mutual authentication* and forward secrecy.
+
+It also introduces a number of additional convenience and security features which make it easier to be secure by default, and largely removes the necessity of API driven [Server Management](#server-management) which was
+needed in V1 for full onboarding and passkey rotation automation. **This is no longer necessary at all with outbound connections.**
+
+>[!IMPORTANT]
+> I've done my best to create sane defaults to simplify the configuration as much as possible,
+> but for compatibility reasons as users migrate from V1 -> V2, I made **Inbound Connections** the
+> default behavior still, but pushing users towards using the new authentication flow instead of passkeys.
+> This way, users should be able to migrate to V2 safely without any configuration issues with their *existing* infrastructure
+> and then migrate to the new connection flows when convenient over time.
+> That said, I still **reccomend** that people migrate to **Outbound Connections** when possible,
+> Which will generally be more secure, and allows greater onboarding / connection automation.
+
+### Outbound Connection Flow
+
+As noted, this is the **recommended** flow, but for compatibility reasons with V1, it is not the **default** flow. In outbound mode,
+periphery must know how to reach komodo core, and it must know the *name* of the server on komodo core that it is connecting as.
+It also must have a valid private/public key pair, but this will be *generated* by default, and so they do not need to be provided.
+
+Setting the `komodo_core_address` will coerce the related role variables towards an outbound default, so this is the only *required* variable to
+establish outbound mode. That said, a `komodo_connect_as` variable should be set for existing servers, because it will otherwise default
+to `{{ansible_hostname}}`, and it doesn't hurt to explicitly set other variables rather than relying on default behavior.
+
+### Inbound Connection Flow
+
+### Legacy Connection Flow
+
+## Security / Authentication Variables
+
+These variables can be set to enforce authentication, SSL, or IP whitelists between
+periphery and Komodo Core. The only feature enabled by default is ssl.
+
+| Variable                                  | Default | Description                                                                                                                                                                                                         |
+| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **komodo\_passkeys**                      | `[]`    | List of passkeys the server will accept                                                                                                                                                                             |
+| **komodo\_bind\_ip**                      | `[::]`  | IP address the server binds to (`0.0.0.0` to force IPv4 only)                                                                                                                                                       |
+| **komodo\_allowed\_ips**                  | `[]`    | IP list allowed to access periphery (empty list means all allowed)                                                                                                                                                  |
+| **komodo\_ssl\_enabled**                  | `true`  | Enable HTTPS between core/periphery when `true`. By default, certs are autogenerated, unless keys are provided with `komodo_ssl_key_file/komodo_ssl_cert_file`                                                      |
+| **komodo\_ssl\_key\_file**                | `None`  | Key file used for ssl connection to core. If not provided, periphery will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo`   |
+| **komodo\_ssl\_\cert_file**               | `None`  | Cert file used for ssl connection to core. If not provided, periphery  will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo` |
+| **komodo\_agent\_secrets**                | `[]`    | List (of name/value pairs) for secrets only available to the agent. See [Adding Periphery Secrets](#adding-periphery-secrets)                                                                                       |
+
 ## Systemd Configuration
 
 This role supports running periphery under either the systemd **user** manager (i.e. `systemctl --user start periphery`) 
@@ -64,21 +119,6 @@ Least-privilege is the default, so **user** scope is recommended. For a deeper c
 |-----------------------------|---------|----------------------------------------------------------------------------------------|
 | **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
 
-
-## Security / Authentication Variables
-
-These variables can be set to enforce authentication, SSL, or IP whitelists between
-periphery and Komodo Core. The only feature enabled by default is ssl.
-
-| Variable                                  | Default | Description                                                                                                                                                                                                         |
-| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **komodo\_passkeys**                      | `[]`    | List of passkeys the server will accept                                                                                                                                                                             |
-| **komodo\_bind\_ip**                      | `[::]`  | IP address the server binds to (`0.0.0.0` to force IPv4 only)                                                                                                                                                       |
-| **komodo\_allowed\_ips**                  | `[]`    | IP list allowed to access periphery (empty list means all allowed)                                                                                                                                                  |
-| **komodo\_ssl\_enabled**                  | `true`  | Enable HTTPS between core/periphery when `true`. By default, certs are autogenerated, unless keys are provided with `komodo_ssl_key_file/komodo_ssl_cert_file`                                                      |
-| **komodo\_ssl\_key\_file**                | `None`  | Key file used for ssl connection to core. If not provided, periphery will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo`   |
-| **komodo\_ssl\_\cert_file**               | `None`  | Cert file used for ssl connection to core. If not provided, periphery  will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo` |
-| **komodo\_agent\_secrets**                | `[]`    | List (of name/value pairs) for secrets only available to the agent. See [Adding Periphery Secrets](#adding-periphery-secrets)                                                                                       |
 
 ## Server Management
 
