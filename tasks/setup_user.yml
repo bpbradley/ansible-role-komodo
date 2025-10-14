@@ -5,6 +5,7 @@
       become: true
       ansible.builtin.group:
         name: "{{ komodo_group }}"
+        gid: "{{ komodo_gid | default(omit) }}"
       when:
         - not komodo_group_exists | bool
         - allow_create_komodo_user | bool
@@ -17,6 +18,7 @@
         shell: /usr/sbin/nologin
         create_home: true
         home: "{{ komodo_home }}"
+        uid: "{{ komodo_uid | default(omit) }}"
       when:
         - not komodo_group_exists | bool
         - allow_create_komodo_user | bool
