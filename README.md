@@ -340,50 +340,26 @@ komodo_agent_secrets:
 > actually create the user in a dry-run.
 
 1. `ansible-galaxy role install bpbradley.komodo`
-2. Create an `inventory/komodo.yml` file which specifies your komodo hosts and indicates the allowed_ips if desired
+1. Create an `inventory/komodo.yml` file which specifies your komodo hosts, and the required connection configurations
+
     ```yaml
     komodo:
         hosts:
+            # Outbound connetion, recommended
             komodo_periphery1:
                 ansible_host: 192.168.10.20
-                komodo_allowed_ips:
-                    - "127.0.0.1"
-                komodo_bind_ip: 0.0.0.0
+                komodo_core_address: "wss://komodo.example.com" # or "ws://<komodo core ip>:9120
+                komodo_connect_as: "server_name" # If not set, will default to inventory name, `komodo_periphery1` in this case.
+                komodo_server_enabled: false # Strictly set outbound mode. Defaults to false when core address is set though.
+            # Inbound connection, default
             komodo_periphery2:
                 ansible_host: 192.168.10.21
                 komodo_allowed_ips:
-                    - "::ffff:192.168.10.20"
-    ```
-   
-4. **Optional** but recommended. Set an encrypted passkey using `ansible-vault` which matches the passkey set in Komodo Core.
-
-    ```sh
-    ansible-vault encrypt_string 'supersecretpasskey'
-    ```
-    You will get an output like this, which we will use later. 
-
-    ```
-    !vault |
-      $ANSIBLE_VAULT;1.1;AES256
-      65353234373130353539663661376563613539303866643963363830376661316638333139343366
-      3563656637303235373336336131346338336634653232300a313736396336316330666237653237
-      64613231323433373637313462633863613732653136366462313134393938623136326633346166
-      3834333462333162310a313037306336613061313733363862633437376133316234326431633131
-      35386565333538623231643433396334323132616438353839663534373030393266
+                    - "192.168.10.22" # Komodo core IP
+                komodo_core_public_key: <public key copied from komodo core> 
     ```
 
-    Note that you will need to now input the password you entered every time you run this role,
-    or you can create a password file for automation.
-
-    ```sh
-    echo "your password" > .vault_pass
-    chmod 600 .vault_pass
-    ```
-
-    Now you can call your playbook with `--vault-password-file .vault_pass`
-
-5. Create a playbook which selects the role. You can create multiple playbooks for install/uninstall/update, or just one
-playbook and control behavior with variables. Here is an example of doing it with just one playbook.
+1. Create a playbook which selects the role.
 
     `playbooks/komodo.yml`
 
@@ -393,33 +369,23 @@ playbook and control behavior with variables. Here is an example of doing it wit
       hosts: komodo
       roles:
           - role: bpbradley.komodo
-          komodo_action: "install"
-          komodo_version: "latest"
-          komodo_passkeys: 
-            - !vault |
-                $ANSIBLE_VAULT;1.1;AES256
-                65353234373130353539663661376563613539303866643963363830376661316638333139343366
-                3563656637303235373336336131346338336634653232300a313736396336316330666237653237
-                64613231323433373637313462633863613732653136366462313134393938623136326633346166
-                3834333462333162310a313037306336613061313733363862633437376133316234326431633131
-                35386565333538623231643433396334323132616438353839663534373030393266
+          komodo_action: "install" # default action
+          komodo_version: "core"
     ```
-   
-6. Run the playbook
+
+1. Run the playbook
 
     Install using default values
 
     ```sh
-    ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
-    --vault-password-file .vault_pass
+    ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml
     ```
 
     Install an older version instead
 
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
-    -e "komodo_version=v1.16.11" \
-    --vault-password-file .vault_pass
+    -e "komodo_version=v1.16.11" 
     ```
 
     Update to the latest version
@@ -427,9 +393,7 @@ playbook and control behavior with variables. Here is an example of doing it wit
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
     -e "komodo_action=update" \
-    -e "komodo_version=latest" \
-    --vault-password-file .vault_pass
-
+    -e "komodo_version=latest" 
     ```
 
     Uninstall the periphery agent and all installed files, and delete the user.
@@ -437,8 +401,7 @@ playbook and control behavior with variables. Here is an example of doing it wit
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
     -e "komodo_action=uninstall" \
-    -e "allow_delete_komodo_user=true" \
-    --vault-password-file .vault_pass
+    -e "allow_delete_komodo_user=true" 
     ```
 
   ## More Examples / Advanced Features

@@ -47,7 +47,13 @@ port = {{komodo_periphery_port}}
 {% if _komodo_version is version('1.17.1', '>=') %}
 bind_ip = "{{ komodo_bind_ip }}"
 {% endif %}
-allowed_ips = {{komodo_allowed_ips}}
+allowed_ips = {{
+  (
+    [komodo_allowed_ips] | default([], true) | flatten
+  )
+  | map('string') | map('trim')
+  | reject('equalto','') | unique | list
+}}
 ssl_enabled = {{ komodo_ssl_enabled | bool | lower }}
 {% if komodo_ssl_key_file | string | trim | length > 0 %}
 ssl_key_file = {{ komodo_ssl_key_file | string | tojson }}
