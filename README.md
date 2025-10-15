@@ -51,13 +51,10 @@ Komodo 2.0.0 fundamentally changes the way that Core and Periphery communicate. 
 see [Inbound vs Outbound Connections](#inbound-vs-outbound-connections). The key difference is that connection flow moves from an **Inbound** only (default for compatibility)
 to an **Inbound** or **Outbound** (recommended) topology, with robust mutual authentication and forward secrecy, and all communication multiplexed over a single websocket connection.
 
-While these connection flows are not technically mutually exclusive, meaning one periphery can technically operate in both **Inbound** and **Outbound** mode
-if periphery is handling multiple core connections in diffferent configurations, this is *generally* not recommended.
+As a rule of thumb, chose *one* of the below connection flows for each host (although technically, they are not mutually exclusive).
 
-As a rule of thumb, chose just one of the below connection flows.
-
-1. The recommendation is [Outbound](#outbound-connection-flow)
-2. The default is [Inbound](#inbound-connection-flow) for compatibility
+1. Recommendation is [Outbound](#outbound-connection-flow), unless core cannot be accessible to periphery
+2. The default is [Inbound](#inbound-connection-flow) for compatibility (periphery must be accessible to core)
 3. [Legacy](#legacy-connection-flow) when using versions core version < 2.0.0
 
 ### Outbound Connection Flow
