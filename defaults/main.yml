@@ -119,7 +119,7 @@ allow_overwrite_key_files: false
 allow_write_keys_to_files: true
 komodo_core_address: ""
 komodo_private_key: ""
-komodo_connect_as: "{{ ansible_hostname }}"
+komodo_connect_as: "{{ inventory_hostname }}"
 komodo_server_enabled: >-
   {{
     (komodo_core_address | default('') | string | trim | length) == 0
