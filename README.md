@@ -143,25 +143,6 @@ Least-privilege is the default, so **user** scope is recommended. For a deeper c
 |-----------------------------|---------|----------------------------------------------------------------------------------------|
 | **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
 
-## Server Management
-
-When enabled and provided with API credentials / details, the role can automatically create and update servers for you. Including the ability to 
-set *per-periphery* passkeys, rather than using global ones. Currently, that ability can only be done via the API. In order to use this feature, you must provide valid API Credentials, 
-
->[!NOTE] 
-> You must also set `komodo_core_http_address` to the core address which is reachable from the ansible local node (because API calls are delegated to localhost).
-> i.e. `https://komodo.example.com`
-
-| Variable                       | Default                    | Description                                                                                     |
-| ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------- |
-| **enable\_server\_management** | `false`                    | Allows the role to create / update servers automatically in Komodo Core                         |
-| **server\_name**               | `{{ inventory_hostname }}` | Name under which the server is registered in Core.                                              |
-| **server\_address**            | `""`                       | Public URL advertised to Core (auto-detected when blank)                                        |
-| **server\_passkey**            | `""`                       | Passkey specific to this server (merges with `komodo_passkeys` for periphery deployment.        |
-| **generate\_server\_passkey**  | `false`                    | Generate a random passkey ([See below for special notes on this](#note-on-generated-passkeys) ) |
-| **komodo\_core\_api\_key**     | `""`                       | API key used to authenticate to Core                                                            |
-| **komodo\_core\_api\_secret**  | `""`                       | Secret paired with the API key                                                                  |
-
 ## Periphery Specific Providers
 
 You can define providers in the periphery configuration that will only be available to that deployment
@@ -201,6 +182,27 @@ komodo_registry_providers:
           $ANSIBLE_VAULT;1.1;AES256
           <redacted>
 ```
+
+## Server Management
+
+When enabled and provided with API credentials / details, the role can automatically create and update servers for you.
+Server management features are not needed at all when using **Outbound** connections. This will only be relevant to **Inbound** connections where there is no onboarding mechanism.
+
+If using outbound connections, simply use the `komodo_onboarding_key` and skip this section.
+
+>[!NOTE] 
+> You must also set `komodo_core_http_address` to the core address which is reachable from the ansible local node (because API calls are delegated to localhost).
+> i.e. `https://komodo.example.com`
+
+| Variable                       | Default                    | Description                                                             |
+| ------------------------------ | -------------------------- | ----------------------------------------------------------------------- |
+| **enable_server_management**   | `false`                    | Allows the role to create / update servers automatically in Komodo Core |
+| **server_name**                | `{{ inventory_hostname }}` | Name under which the server is registered in Core.                      |
+| **server_address**             | `""`                       | Public URL advertised to Core (auto-detected when blank)                |
+| **server_passkey**             | `""`                       | **DEPRECATED:** Passkey specific to this server                         |
+| **generate_server_passkey**    | `false`                    | **DEPRECATED:** Generate a random passkey                               |
+| **komodo_core_api_key**        | `""`                       | API key used to authenticate to Core                                    |
+| **komodo_core_api_secret**     | `""`                       | Secret paired with the API key                                          |
 
 ## Additional Variables
 
@@ -420,7 +422,6 @@ komodo_agent_secrets:
   This guide only covers the basic information to get off the ground, but you can see more thorough examples
   and explanations in the [`examples/`](./examples) section.
 
-  1. Basic installation example with very little customization: [`examples/basic`](./examples/basic)
-  2. Example using authentication with allowed IPs and global passkeys: [`examples/auth`](./examples/auth)
-  3. Example showing server management functions and unique server passkeys: [`examples/server_management`](./examples/server_management)
-  4. Building out full automation for komodo-managed periphery redeployment using ansible-in-docker with a custom ansible execution environment that includes this role: [`examples/komodo_automation`](./examples/komodo_automation)
+  1. Basic usage demonstrating recommended outbound connections: [`examples/outbound`](./examples/outbound)
+  1. Example using inbound connections: [`examples/inbound`](./examples/inbound)
+  1. Building out full automation for komodo-managed periphery redeployment using ansible-in-docker with a custom ansible execution environment that includes this role: [`examples/komodo_automation`](./examples/komodo_automation)
