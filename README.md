@@ -5,6 +5,7 @@ minimizing permissions by creating a service user and running the service as tha
 The role supports both systemd **user** and **system** scopes; in both cases the service runs as the unprivileged `komodo` user.
 
 The user will only have access to:
+
 * Its configuration files
 * The periphery agent binary
 * Its SSL certificates/Authentication Keys for connection to Komodo Core
@@ -16,10 +17,10 @@ the numerous edge cases which appear when running it as a docker container.
 
 ## Features
 
-1. **Install** or **Update** Komodo Periphery as a systemd unit, with all available periphery configurations adjustable as role variables.
-1. Can **Create a komodo service user** to run the service, unless an existing user is set as a role varaible
-1. Install as a systemd **User Unit** or **System Unit**
-1. Supports clean **Uninstall** of periphery agent and removal of configuration files, and *optionally* deletion of service user.
+1. **Install** or **Update** Komodo Periphery as a systemd unit
+1. **Create a komodo service user** to run the service
+1. Supports both systemd **User Units** and **System Units**
+1. **Uninstall** of periphery agent and removal of configuration files, and *optionally* deletion of service user.
 
 ## Required Role Variables
 
@@ -35,31 +36,20 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 > by default allows creation of the `komodo_user`.
 > See [Komodo User Management](#komodo-user-management).
 
-## Komodo User Management
-
-By default, the komodo user (i.e. the user perhiphery is run as) is managed by this role, and the level of management of the `komodo_user` is influenced by the `komodo_action`
-
-| Variable                                     | Default                                | Description                                                                                                                                             |
-| -------------------------------------------- | ---------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **allow\_create\_komodo\_user**              | `true` on `install`, otherwise `false` | Allows `komodo_user` to be created. Will be created as a service account with no login, unless the user exists already in which case it wont be touched |
-| **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`, and allows the role to add the user to the `docker` group                |
-| **allow\_delete\_komodo\_user**              | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
-
 ## Connection Flow
 
-Komodo 2.0.0 fundamentally changes the way that Core and Periphery communicate. For a detailed explanation,
-see [Inbound vs Outbound Connections](#inbound-vs-outbound-connections). The key difference is that connection flow moves from an **Inbound** only (default for compatibility)
-to an **Inbound** or **Outbound** (recommended) topology, with robust mutual authentication and forward secrecy, and all communication multiplexed over a single websocket connection.
+Periphery can communicate either **inbound** (Core -> Periphery) or **outbound** (Periphery -> Core). For a detailed explanation,
+see [Inbound vs Outbound Connections](#inbound-vs-outbound-connections). 
 
 As a rule of thumb, chose *one* of the below connection flows for each host (although technically, they are not mutually exclusive).
 
 1. Recommendation is [Outbound](#outbound-connection-flow), unless core cannot be accessible to periphery
 2. The default is [Inbound](#inbound-connection-flow) for compatibility (periphery must be accessible to core)
-3. [Legacy](#legacy-connection-flow) when using versions core version < 2.0.0
+3. [Legacy](#legacy-connection-flow) when using core version < 2.0.0
 
-### Outbound Connection Flow
+### Outbound Connection
 
-Outbound connection is the **recommended** flow, but for compatibility reasons with V1, it is not the **default** flow. In outbound mode,
+Outbound connection is the **recommended** mode. In outbound mode,
 periphery must know how to reach komodo core, and it must know the *name* of the server on komodo core that it is connecting as.
 It also must have a valid private/public key pair, but this will be *generated* by default, and so they do not need to be provided.
 
@@ -67,28 +57,27 @@ Setting the `komodo_core_address` will coerce the related role variables towards
 establish outbound mode. That said, a `komodo_connect_as` variable should be set for existing servers, because it will otherwise default
 to `{{ inventory_hostname }}`, and it doesn't hurt to explicitly set other variables rather than relying on default behavior.
 
+| Variable                                  | Default                                           | Description                                                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **komodo\_core\_address**                 | `None`                                            | **Required**: ex: `wss://komodo.example.com` or `ws://192.168.10.10:9120`. The address of the websocket server to connect to in Komodo Core                             |
+| **komodo\_server\_enabled**               | `false` when `komodo_core_address` is set         | This controls the creation of the inbound server. When `komodo_core_address` is set, this coerces to false, which translates to outbound-only mode.                     |
+| **komodo\_connect\_as**                   | `{{ inventory_hostname }}`                        | The server name in Komodo Core that this periphery client will "connect as". i.e. a server named `bob` in Komodo core should have this set to `bob`                     |
+| **komodo\_private\_key**                  | `None`                                            | The periphery private key. The public key will be computed. If left blank (recommended), key pairs will auto-generate to `{{ komodo_root_directory }}/periphery.key`.   |
+| **komodo\_core\_public\_key**             | `file:{{ komodo_root_directory }}/keys/core.pub`  | Optional: Setting a core public key will "pin" periphery to the public key(s) specified. Use default to automatically pin the first connected core.                     |
+| **komodo\_onboarding\_key**               | `None`                                            | Allows server to be created / modified automatically in Komodo Core. Generate in **Settings > Onboarding**, and can disable after onboarding.                           |
+
+### Inbound Connection
+
 | Variable                                  | Default | Description                                                                                                                                                                                                         |
 | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **komodo\_core\_address**                 | `None`                                                                                | ex: `wss://komodo.example.com` or `ws://192.168.10.10:9120`. The address of the websocket server to connect to in Komodo Core                                                                                                                                                                             |
-| **komodo\_server\_enabled**               | `false` when `komodo_core_address` is set                                             | This controls the creation of the inbound server. Note that it *is* possible to have an outbound and inbound connection simultaneously for multiple different cores, but this is a rare configuration. When `komodo_core_address` is set, this coerces `komodo_server_enabled` to false, which translates to a strict outbound-only mode. |
-| **komodo\_connect\_as**                   | `{{ inventory_hostname }}`                                                            | The server name in Komodo Core that this periphery client will "connect as". i.e. a server named `bob` in Komodo core should have this set to `bob`                                                                                                                                                      |
-| **komodo\_private\_key**                  | `None` (autogenerated key pair -- recommended)                                        | The periphery private key. The public key will be computed. If left blank (recommended), key pairs will auto-generate to `{{ komodo_root_directory }}/periphery.key`. If a key *is* provided, then by default it will be materialized to that same path with `allow_write_keys_to_files=true`. Otherwise, it will be written in plaintext in the config file, and key rotation in komodo will not work.                                                     |
-| **komodo\_core\_public\_key**             | `file:{{ komodo_root_directory }}/keys/core.pub` when `komodo_server_enabled=false`   | Optional: Recommend using default. Setting a core public key will "pin" periphery to the public key(s) specified (can be single item string, or a list of pubkeys). If left as a file reference as in default, first connected komodo core will automaticall pin, and having the key in file will allow Core Key rotation. Adding raw keys will also materialize to files by default with `allow_write_keys_to_files=true` so that core keys can be rotated. |
-| **komodo\_onboarding\_key**               | `None`                                                                                | Allows server to be created / modified automatically in Komodo Core (without needing to enable [Server Management](#server-management) in this role). Generate in Komodo Core, and can disable after onboarding.   |
-
-### Inbound Connection Flow
-
-| Variable                                  | Default | Description                                                                                                                                                                                                         |
-| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **komodo\_server\_enabled**               | `true`  | This controls the creation of the inbound server.  |
-| **komodo\_core\_public\_key**             | `None` when `komodo_server_enabled=true` | Optional but highly recommended in Inbound mode. The core public key, in inbound mode, is critical for authentication. This can be copied from Komodo Core by clicking the key icon in the top header. Adding raw keys will materialize to files in `{{ komodo_root_directory }}/keys` by default with `allow_write_keys_to_files=true` so that core keys can be rotated. |
-| **komodo\_bind\_ip**                      | `[::]`  | IP address the server binds to (`0.0.0.0` to force IPv4 only)                                                                                                                                                       |
+| **komodo\_server\_enabled**               | `true`  | This controls the creation of the inbound server.                                                                                                                                                                   |
+| **komodo\_core\_public\_key**             | `None`  | Optional but highly recommended in Inbound mode. The core public key, in inbound mode, is critical for authentication. This can be copied from Komodo Core by clicking the key icon in the top header.              |
 | **komodo\_allowed\_ips**                  | `[]`    | IP list allowed to access periphery (empty list means all allowed)                                                                                                                                                  |
 | **komodo\_ssl\_enabled**                  | `true`  | Enable HTTPS between core/periphery when `true`. By default, certs are autogenerated, unless keys are provided with `komodo_ssl_key_file/komodo_ssl_cert_file`                                                      |
 | **komodo\_ssl\_key\_file**                | `None`  | Key file used for ssl connection to core. If not provided, periphery will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo`   |
 | **komodo\_ssl\_cert\_file**               | `None`  | Cert file used for ssl connection to core. If not provided, periphery  will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo` |
 
-### Legacy Connection Flow
+### Legacy Connection
 
 > [!IMPORTANT]
 > The legacy connection flow is provided for backwards compatibility, and is also the only supported method prior to Komodo 2.0.0.
@@ -108,6 +97,16 @@ at which point this is a valid, modern inbound connection.
 | **komodo\_ssl\_enabled**                  | `true`  | Enable HTTPS between core/periphery when `true`. By default, certs are autogenerated, unless keys are provided with `komodo_ssl_key_file/komodo_ssl_cert_file`                                                      |
 | **komodo\_ssl\_key\_file**                | `None`  | Key file used for ssl connection to core. If not provided, periphery will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo`   |
 | **komodo\_ssl\_cert\_file**               | `None`  | Cert file used for ssl connection to core. If not provided, periphery  will auto-generate in `{{ komodo_root_directory}}/ssl`. If specified, the files must exist on system already, with ownership `komodo:komodo` |
+
+## Komodo User Management
+
+By default, the komodo user (i.e. the user perhiphery is run as) is managed by this role, and the level of management of the `komodo_user` is influenced by the `komodo_action`
+
+| Variable                                     | Default                                | Description                                                                                                                                             |
+| -------------------------------------------- | ---------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **allow\_create\_komodo\_user**              | `true` on `install`, otherwise `false` | Allows `komodo_user` to be created. Will be created as a service account with no login, unless the user exists already in which case it wont be touched |
+| **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`, and allows the role to add the user to the `docker` group                |
+| **allow\_delete\_komodo\_user**              | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
 
 ## Systemd Configuration
 
