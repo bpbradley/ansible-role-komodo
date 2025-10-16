@@ -36,6 +36,15 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 > by default allows creation of the `komodo_user`.
 > See [Komodo User Management](#komodo-user-management).
 
+## Automatic Versioning
+
+Set `komodo_version` to `latest` to determine the latest release from GitHub and install that. You can also specify `komodo_version=core` and the role will
+request the currently installed version on Komodo Core, and install the matching version. In order to use `core`, you must provided a valid address to reach the `/version` endpoint for core (`v2.0.0` and later only), or if using an earlier version you must provide API credentials as in [Server Management](#server-management)
+
+| Variable                                          | Default                                         | Description                                                                                 |
+| ------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **komodo_core_http_address**                      | Tries to derive from `komodo_core_address`      | ex. `https://komodo.example.com` or `http:IP:9120`. Must be reachable by ansible localhost. |
+
 ## Connection Flow
 
 Periphery can connect **Outbound** (Periphery -> Core) or **Inbound** (Core -> Periphery).
@@ -290,15 +299,6 @@ Here is a quick comparison of how exactly the services are deployed when using t
 
 A rule of thumb would probably be to stick with `user` mode for home use, as it is unlikely you will be impacted by any of the complications associated with it.
 Otherwise, consider `system` mode when you want to minimize friction with managing the service, and have a more reliable dependency ordering.
-
-### Automatic Versioning
-
-Set `komodo_version` to `latest` to determine the latest release from GitHub and install that. You can also specify `komodo_version=core` and the role will
-request the currently installed version on Komodo Core, and install the matching version. In order to use `core`, you must provided a valid address to reach the `/version` endpoint for core (`v2.0.0` and later only), or if using an earlier version you must provide API credentials as in [Server Management](#server-management)
-
-| Variable                                          | Default                                         | Description                                                                                                                                                                            |
-| ------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **komodo_core_http_address**                      | Tries to derive from `komodo_core_address`      | This is the http endpoint for core, reachable by ansible localhost. If none provided, but a `komodo_core_address` is for outbound mode, attempts to derive the http endpoint from that |
 
 ### Adding Periphery Secrets
 
