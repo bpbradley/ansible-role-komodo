@@ -97,7 +97,7 @@ As a rule of thumb, chose *one* of the below connection flows for each host (alt
 Every Periphery deployment will have a private/public key pair used for mutual authentication
 with Komodo Core using a key exchange process. For the most part, this role (and the default behavior of periphery)
 try to minimize effort to manage these keys by the end user. For example, in [Outbound](#outbound-connection-flow),
-all keys can be completely managed by default.
+all keys can be completely managed securely with default settings.
 
 If however you must manually set keys (as with `komodo_core_public_key` in Inbound mode), it is
 highly recommended that these keys be managed in their own *file* rather than as a raw key in the config file.
@@ -113,7 +113,6 @@ by overriding these variables.
 | ------------------------------ | --------| ----------------------------------------------------------------------------- |
 | **allow_write_keys_to_files**  | `true`  | Raw keys are materialized to files in `{{ komodo_root_directory }}/keys`      |
 | **allow_overwrite_key_files**  | `false` | If a file already exists for this key, it will only overwrite it if allowed.  |
-
 
 ## Komodo User Management
 
@@ -137,13 +136,12 @@ or the systemd **system** manager (i.e.`systemctl start periphery`). In both cas
 
 Least-privilege is the default, so **user** scope is recommended. For a deeper comparison, see [Systemd User vs System Units](#systemd-user-vs-system-units).
 
->[!NOTE]
+> [!NOTE]
 > If switching between `user` and `system` mode, you should make sure to `uninstall` with the currently installed mode set first, then `install` or `update` in the desired mode.
 
 | Variable                    | Default | Description                                                                            |
 |-----------------------------|---------|----------------------------------------------------------------------------------------|
 | **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
-
 
 ## Server Management
 
