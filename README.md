@@ -346,8 +346,8 @@ komodo_agent_secrets:
             komodo_periphery1:
                 ansible_host: 192.168.10.20
                 komodo_core_address: "wss://komodo.example.com" # or "ws://<komodo core ip>:9120
-                komodo_connect_as: "server_name" # If not set, will default to inventory name, `komodo_periphery1` in this case.
-                komodo_server_enabled: false # Strictly set outbound mode. Defaults to false when core address is set though.
+                komodo_connect_as: "server_name"
+                komodo_server_enabled: false
             # Inbound connection, default
             komodo_periphery2:
                 ansible_host: 192.168.10.21
