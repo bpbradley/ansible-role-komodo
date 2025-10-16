@@ -24,10 +24,10 @@ the numerous edge cases which appear when running it as a docker container.
 
 ## Required Role Variables
 
-For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more details. Below are the only required variables if you are otherwise okay with defaults.
+Below are the only required variables if otherwise relying on defaults, but refer to [Basic Installation](#basic-installation--setup) for a recommended simple and secure setup
 
-| Variable                                  | Default               | Description                                                                       |
-| ----------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
+| Variable                                 | Default               | Description                                                                       |
+| ---------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
 | **komodo_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
 | **komodo_version**                       | `v1.19.5`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
 
@@ -252,20 +252,22 @@ Some additional variables to tweak settings or override default behavior.
 
 ### Inbound vs Outbound Connections
 
-Introduced in Komodo 2.0.0, connection between Komodo Core and Periphery is *highly* configurable, and far more secure than in Komodo v1. In Komodo v1, *all* communication
-between Komodo Core and Periphery was **Inbound** to periphery. This means that Periphery itself must host a server, which a "server" in core is configured to reach out to
-and establish connection. Then, communication was established (usually) with ssl, and authentication required setting a passkey and IP allow list to filter out connections
-from clients that are not the intended Komodo Core. This worked, and still works in v2 for compatibility, but it carries several issues.
+Komodo 2.0.0 introduces the **Outbound Connection** model.
+Prior to this milestone, all communication between Komodo Core and Periphery was **Inbound** to Periphery. 
+This means that Periphery itself must host a server, which a “server” in Core is configured to reach out to and establish connection. 
+Communication was established (usually) with TLS/SSL, and authentication required setting a passkey and an IP allow list to filter out connections from clients that are not the intended Komodo Core.
+This all still works in v2 for compatibility, but it carries several issues.
 
-1. The periphery host must be able to host a server, and that server must be accessible by komodo core. This often required complex overlay networks and/or VPN configurations to do securely.
-2. The passkey authentication method requires commununication of sensitive, static credentials over the network
-3. Credential separation (and credential rotation) between servers required API based automation, which carries the risk of API credential exposure
+1. **Reachability**: The Periphery host must be able to host a server, and that server must be accessible by Komodo Core. This sometimes required complex overlay networks and/or VPN configurations to do securely.
+1. **Credential Security**: Passkey authentication transmits sensitive, *static* credentials.
+1. **Credential Separation**: Unique credentials and rotation typically required API-based automation, adding complexity and API credential exposure risk.
 
-To that end, Komodo 2.0.0 solves these issues by allowing an **Outbound Connection** flow, as well as completely changing how Core <-> Periphery authenticates by adopting the [Noise Protocol](https://noiseprotocol.org/noise.html),
-and more specifically, the [Noise XX Handshake](https://noiseprotocol.org/noise.html#handshake-patterns) which allows *mutual authentication* and forward secrecy.
+Komodo 2.0.0 addresses the **network reachability** problem by allowing an **Outbound** flow **and** replaces passkey authentication in both directions with the [Noise Protocol](https://noiseprotocol.org/noise.html).
+Specifically, it uses the [Noise XX Handshake](https://noiseprotocol.org/noise.html#handshake-patterns) which provides *mutual authentication* and *forward secrecy* for **Inbound and Outbound** connections alike.
 
-It also introduces a number of additional convenience and security features which make it easier to be secure by default, and largely removes the necessity of API driven [Server Management](#server-management) which was
-needed in V1 for full onboarding and passkey rotation automation. **This is no longer necessary at all with outbound connections.**
+It also introduces a number of additional convenience and security features that make it easier to be secure by default,
+and largely removes the necessity of API-driven Server Management that was needed in v1 for full onboarding and passkey rotation automation.
+With outbound connections, that API automation is unnecessary.
 
 ### Systemd User vs System Units
 
@@ -340,7 +342,7 @@ komodo_agent_secrets:
                 komodo_core_address: "wss://komodo.example.com" # or "ws://<komodo core ip>:9120
                 komodo_connect_as: "server_name"
                 komodo_server_enabled: false
-            # Inbound connection, default
+            # Inbound connection if necessary for an isolated host
             komodo_periphery2:
                 ansible_host: 192.168.10.21
                 komodo_allowed_ips:
@@ -360,6 +362,7 @@ komodo_agent_secrets:
           - role: bpbradley.komodo
           komodo_action: "install" # default action
           komodo_version: "core"
+          komodo_core_http_address: "https://komodo.example.com" # needed to use `core` versioning
     ```
 
 1. Run the playbook
@@ -370,27 +373,36 @@ komodo_agent_secrets:
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml
     ```
 
+    Onboard a new server
+
+    ```sh
+    ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
+    -e komodo_action=install \
+    -e komodo_onboarding_key=O-... \
+    -l komodo_periphery1
+    ```
+
     Install an older version instead
 
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
-    -e "komodo_version=v1.16.11" 
+    -e komodo_version=v1.16.11
     ```
 
     Update to the latest version
 
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
-    -e "komodo_action=update" \
-    -e "komodo_version=latest" 
+    -e komodo_action=update \
+    -e komodo_version=latest
     ```
 
     Uninstall the periphery agent and all installed files, and delete the user.
 
     ```sh
     ansible-playbook -i inventory/komodo.yaml playbooks/komodo.yml \
-    -e "komodo_action=uninstall" \
-    -e "allow_delete_komodo_user=true" 
+    -e komodo_action=uninstall \
+    -e allow_delete_komodo_user=true"
     ```
 
   ## More Examples / Advanced Features
