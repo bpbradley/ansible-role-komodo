@@ -69,10 +69,10 @@ server_enabled = {{ komodo_server_enabled | bool | lower }}
 ########
 # AUTH #
 ########
-
+{% if komodo_server_enabled or _komodo_version is version('2.0.0', '<') %}
 {% set allowed_passkeys =
   (
-    [komodo_passkeys] | default([], true) | flatten
+    [komodo_passkeys | default([])] | default([], true) | flatten
     + [server_passkey | default('')]
     + [passkey | default('')]
   )
@@ -81,6 +81,7 @@ server_enabled = {{ komodo_server_enabled | bool | lower }}
 %}
 {% if allowed_passkeys %}
 passkeys = {{ allowed_passkeys }}
+{% endif %}
 {% endif %}
 {% if _komodo_version is version('2.0.0','>=') %}
 {% if _periphery_private_key | string | trim | length > 0 %}
