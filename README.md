@@ -68,6 +68,10 @@ to `{{ inventory_hostname }}`, and it doesn't hurt to explicitly set other varia
 
 ### Inbound Connection
 
+This is the **default** behavior for compatibility, since it shares topology with v1 and v2 komodo.
+Setting no connection flow variables will result in an open inbound connection. So it is **highly recommended**
+to set a `komodo_core_public_key** in this mode, and optionally encrypt with ansible vault.
+
 | Variable                                  | Default | Description                                                                                                                                                                                                         |
 | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **komodo\_server\_enabled**               | `true`  | This controls the creation of the inbound server.                                                                                                                                                                   |
@@ -85,7 +89,7 @@ to `{{ inventory_hostname }}`, and it doesn't hurt to explicitly set other varia
 > Users on komodo core >=2.0.0 are urged to migrate to the newer connection methods
 
 Legacy connection flow simply refers to the use of passkeys for authentication, as opposed to the newer method which relies on
-`komodo\_core\_public\_key`. The simplest migration path will just be to replace this variable with your Komodo Core Public Key,
+`komodo_core_public_key`. The simplest migration path from v1 -> v2 is to simply replace `komodo_passkeys` with `komodo_core_public_key`,
 at which point this is a valid, modern inbound connection.
 
 | Variable                                  | Default | Description                                                                                                                                                                                                         |
