@@ -38,12 +38,15 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 
 ## Automatic Versioning
 
-Set `komodo_version` to `latest` to determine the latest release from GitHub and install that. You can also specify `komodo_version=core` and the role will
-request the currently installed version on Komodo Core, and install the matching version. In order to use `core`, you must provided a valid address to reach the `/version` endpoint for core (`v2.0.0` and later only), or if using an earlier version you must provide API credentials as in [Server Management](#server-management)
+* Set `komodo_version=latest` to install the newest GitHub release. 
+* Set `komodo_version=core` to match the version reported by Komodo Core.
+  * Core must expose a reachable /version endpoint (Komodo Core **v2.0.0+**),**OR**
+  * For earlier Core versions, provide API credentials as described in [Server Management](#server-management)
+  * `komodo_core_http_address` must be reachable from the **Ansible control host** where requests are delegated to
 
-| Variable                                          | Default                                         | Description                                                                                 |
-| ------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **komodo_core_http_address**                      | Tries to derive from `komodo_core_address`      | ex. `https://komodo.example.com` or `http:IP:9120`. Must be reachable by ansible localhost. |
+| Variable                                          | Default                                         | Description                                       |
+| ------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| **komodo_core_http_address**                      | Derived from `komodo_core_address`              | ex. `https://komodo.example.com` or `http:IP:9120`|
 
 ## Connection Flow
 
@@ -194,24 +197,22 @@ komodo_registry_providers:
 
 ## Server Management
 
-When enabled and provided with API credentials / details, the role can automatically create and update servers for you.
-Server management features are not needed at all when using **Outbound** connections. This will only be relevant to **Inbound** connections where there is no onboarding mechanism.
+>[!IMPORTANT]
+> Server management features are not needed at all when using **Outbound** connections. This will only be relevant to **Inbound** connections where there is no onboarding mechanism.
+> If using outbound connections, simply use the `komodo_onboarding_key` and skip this section.
 
-If using outbound connections, simply use the `komodo_onboarding_key` and skip this section.
+When enabled and provided with API credentials / details, the role can automatically create and update servers for you when using **Inbound** mode
 
->[!NOTE] 
-> You must also set `komodo_core_http_address` to the core address which is reachable from the ansible local node (because API calls are delegated to localhost).
-> i.e. `https://komodo.example.com`
-
-| Variable                       | Default                    | Description                                                             |
-| ------------------------------ | -------------------------- | ----------------------------------------------------------------------- |
-| **enable_server_management**   | `false`                    | Allows the role to create / update servers automatically in Komodo Core |
-| **server_name**                | `{{ inventory_hostname }}` | Name under which the server is registered in Core.                      |
-| **server_address**             | `""`                       | Public URL advertised to Core (auto-detected when blank)                |
-| **server_passkey**             | `""`                       | **DEPRECATED:** Passkey specific to this server                         |
-| **generate_server_passkey**    | `false`                    | **DEPRECATED:** Generate a random passkey                               |
-| **komodo_core_api_key**        | `""`                       | API key used to authenticate to Core                                    |
-| **komodo_core_api_secret**     | `""`                       | Secret paired with the API key                                          |
+| Variable                       | Default                            | Description                                                                                 |
+| ------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| **enable_server_management**   | `false`                            | Allows the role to create / update servers automatically in Komodo Core                     |
+| **server_name**                | `{{ inventory_hostname }}`         | Name under which the server is registered in Core.                                          |
+| **server_address**             | `""`                               | Public URL advertised to Core (auto-detected when blank)                                    |
+| **server_passkey**             | `""`                               | **DEPRECATED:** Passkey specific to this server                                             |
+| **generate_server_passkey**    | `false`                            | **DEPRECATED:** Generate a random passkey                                                   |
+| **komodo_core_api_key**        | `""`                               | API key used to authenticate to Core                                                        |
+| **komodo_core_api_secret**     | `""`                               | Secret paired with the API key                                                              |
+| **komodo_core_http_address**   | Derives from `komodo_core_address` | ex. `https://komodo.example.com` or `http:IP:9120`. Must be reachable by ansible localhost. |
 
 ## Additional Variables
 
@@ -221,8 +222,8 @@ Some additional variables to tweak settings or override default behavior.
 | ------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **komodo_user**                                   | `komodo`                                        | System user that owns files and runs the service                                                                |
 | **komodo_group**                                  | `komodo`                                        | Group that owns files and runs the service                                                                      |
-| **komodo_uid**                                    | `<not-set>`                                     | User ID for komodo_user (system-chosen by default)                                                             |
-| **komodo_gid**                                    | `<not-set>`                                     | Group ID for komodo_group (system-chosen by default)                                                           |
+| **komodo_uid**                                    | `None`                                          | User ID for komodo_user (system-chosen by default)                                                             |
+| **komodo_gid**                                    | `None`                                          | Group ID for komodo_group (system-chosen by default)                                                           |
 | **komodo_home**                                   | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                                                                 |
 | **komodo_extra_env**                              | `[]`                                            | Extra env vars available to periphery. Define in the same format as [Secrets](#adding-periphery-secrets)        |
 | **komodo_agent_secrets**                          | `[]`                                            | List (name/value pairs) for secrets only available to the agent. See [Secrets](#adding-periphery-secrets)       |
