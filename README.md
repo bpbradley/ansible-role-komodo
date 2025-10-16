@@ -53,11 +53,11 @@ Below are the only required variables if otherwise relying on defaults, but refe
 Periphery can connect **Outbound** (Periphery -> Core) or **Inbound** (Core -> Periphery).
 For deeper background, see [Inbound vs Outbound Connections](#inbound-vs-outbound-connections). 
 
-As a rule of thumb, chose *one* of the below connection flows for each host (although technically, they are not mutually exclusive).
+As a rule of thumb, choose *one* connection flow per-host (they’re not mutually exclusive, but mixing modes on one host is rarely needed).
 
-1. Recommendation is [Outbound](#outbound-connection-flow), unless core cannot be accessible to periphery
-2. Use [Inbound](#inbound-connection-flow) Core must reach Periphery (isolated host)
-3. [Legacy](#legacy-connection-flow) when using core version < 2.0.0
+1. Recommendation is [Outbound](#outbound-connection) (Periphery -> Core), when topology allows it (Periphery can reach Core)
+2. **Otherwise** use [Inbound](#inbound-connection) (Core -> Periphery)
+3. [Legacy](#legacy-connection-flow) when using Core version < 2.0.0
 
 ### Outbound Connection
 
