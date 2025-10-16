@@ -1,0 +1,12 @@
+---
+- name: Manage Komodo Periphery Service
+  hosts: komodo
+  roles:
+    - role: bpbradley.komodo
+      # Default action / version. Can be overriden on command line with -e
+      komodo_action: "install"
+      komodo_version: "core"
+      # Because we are using `core` version, we need to specify the core address
+      # to query the /version endpoint.
+      # If not set, it would try to derive from `komodo_core_address`
+      komodo_core_http_address: "https://komodo.example.com"

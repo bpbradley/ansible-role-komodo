@@ -1,0 +1,15 @@
+# This is simple use case for deploying periphery with mostly default settings.
+
+all:
+  # Here you can have your typical inventory configurations.
+  vars:
+    # Because all nodes are outbound, we can define the core address as shared.
+    komodo_core_address: "wss://komodo.example.com"
+    komodo_server_enabled: false
+  hosts:
+    komodo_host1:
+      ansible_host: 10.1.10.4
+      komodo_connect_as: "bob" # This user must exist on the core node. If not set, would default to `komodo_host1`
+    komodo_host2:
+      ansible_host: 10.1.10.5
+      komodo_connect_as: "alice" # This user must exist on the core node. If not set, would default to `komodo_host2`
