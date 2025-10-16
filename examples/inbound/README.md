@@ -1,32 +1,27 @@
-# Basic Example with Authentication
+# Inbound Connection Example
 
-This example shows how you can setup some basic authentication features.
+In some cases, connection to komodo core cannot be achieved in outbound mode,
+so it is still possible for periphery to host an inbound server for core
+to connect to.
+
+There are some key differences to consider when setting up that are outlined here.
+
+## Core Public Key
+
+In Inbound mode, the core public key is crucial for authentication and should be set.
+You can copy this by clicking the key icon in the header.
+
+Consider encrypting with ansible-vault: `ansible-vault encrypt_string "<pubkey>"`
 
 ## Allowed IPs
 
-The inventory has some host-specific settings describing what IPs are allowed
-to authenticate with periphery. In one of the hosts, no bind IP
-is specified which will cause periphery to bind to the default
-`[::]`. In this case, the allowed IPs must have the ipv6 prefix.
+In inbound mode, you can configure periphery to deny certain connecting IPs, to try to filter out
+just the intended komodo core. In this example, the inventory has some host-specific settings describing what IPs are allowed to authenticate with periphery.
 
-The other periphery is deployed on the same system as core.
+For example, in one of the deployments, periphery is deployed on the same system as core.
 In this case, it is binding to the docker network directly,
 and is specifying only the komodo core internal docker IP
 for authentication.
-
-## Passkeys
-
-We are directly setting the passkeys in the playbook which will
-be applied to any host using this playbook.
-
-It sets two passkeys, meaning that any core instance must be
-configured to send one of those passkeys when communicating
-with periphery.
-
-## Vault
-
-Note that you can, and should encrypt variables with ansible vault.
-`ansible-vault encrypt_string "passkey1"` for example.
 
 ## Usage
 
@@ -36,7 +31,7 @@ You can use also it to update / uninstall, or change the version by
 overriding variables with `-e`
 
 ```sh
-# Update to latest
+# Use latest instead of core
 ansible-playbook playbooks/komodo.yml \
     -e "komodo_action=update" \
     -e "komodo_version=latest" 
@@ -46,4 +41,3 @@ ansible-playbook playbooks/komodo.yml \
     -e "komodo_action=uninstall" \
     -e "komodo_delete_user=true" \
 ```
-

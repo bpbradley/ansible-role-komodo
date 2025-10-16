@@ -5,11 +5,7 @@
     - role: bpbradley.komodo
       # Default action / version. Can be overriden on command line with -e
       komodo_action: "install"
-      komodo_version: "latest"
-      # These passkeys are used to authenticate with the komodo core instance
-      # If the komodo core server/instance does not provide these passkeys,
-      # then periphery will not be able to  communicate with it.
-      # Encrypt these with vault!
-      komodo_passkeys:
-        - passkey1
-        - passkey2
+      komodo_version: "core"
+      # Because we are using `core` version, we need to specify the core address
+      # to query the /version endpoint.
+      komodo_core_http_address: "https://komodo.example.com" # or http://IP:9120..
