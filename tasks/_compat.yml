@@ -23,7 +23,13 @@
   block:
     - name: Cache defined var names on this host
       ansible.builtin.set_fact:
-        _all_var_keys: "{{ hostvars[inventory_hostname] | dict2items | map(attribute='key') | list }}"
+        _all_var_keys: >-
+          {{ vars
+            | dict2items
+            | map(attribute='key')
+            | reject('match', '^(ansible_|group_names$|inventory_|playbook_dir$|role_path$)')
+            | list
+          }}
       changed_when: false
 
     - name: Find deprecated vars present
@@ -45,7 +51,7 @@
           }}
       when:
         - (item.old | intersect(_all_var_keys)) | length > 0
-        - item.after_version is not defined or (komodo_version is version(item.after_version, '>='))
+        - item.after_version is not defined or (_komodo_version is version(item.after_version, '>='))
       loop: "{{ deprecated_configs }}"
       loop_control:
         label: "{{ (item.old | intersect(_all_var_keys)) | join(', ') | default('none') }}"
