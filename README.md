@@ -40,9 +40,9 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 
 * Set `komodo_version=latest` to install the newest GitHub release. 
 * Set `komodo_version=core` to match the version reported by Komodo Core.
-  * Core must expose a reachable /version endpoint (Komodo Core **v2.0.0+**),**OR**
-  * For earlier Core versions, provide API credentials as described in [Server Management](#server-management)
-  * `komodo_core_http_address` must be reachable from the **Ansible control host** where requests are delegated to
+  * Core must expose a reachable /version endpoint (Komodo Core **v2.0.0+**)
+  * **OR** For earlier Core versions, provide API credentials as described in [Server Management](#server-management)
+  * `komodo_core_http_address` must be reachable from the **Ansible control host**
 
 | Variable                                          | Default                                         | Description                                       |
 | ------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
