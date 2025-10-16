@@ -305,7 +305,7 @@ Otherwise, consider `system` mode when you want to minimize friction with managi
 
 ### Adding Periphery Secrets
 
-[Secrets](https://komo.do/docs/variables#defining-variables-and-secrets) can be bound directly to periphery agent in Komodo.
+[Secrets](https://komo.do/docs/resources/variables#defining-variables-and-secrets) can be bound directly to periphery agent in Komodo.
 This can be achieved with this role by adding your secrets as a list of name/value pairs containing your variable name and its value.
 
 For example, you could add this directly to the inventory for a particular host.
