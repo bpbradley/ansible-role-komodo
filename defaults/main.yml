@@ -5,10 +5,6 @@ komodo_version: "v1.19.5"
 # "system" will run the service as a system service, running as the komodo_user
 komodo_service_scope: "user"
 
-# You should encrypt entries with `ansible-vault encrypt_string 'supersecretpasskey' --name 'passkey'`
-# If encrypting, you must run with --ask-vault-pass or have a vault password file.
-komodo_passkeys: "{{ passkey | default([]) }}"
-
 # New to v1.17.1 which introduces IPv6 support.
 # If you have issues, set `komodo_bind_ip` to `0.0.0.0`
 # to revert to previous behaviour.
@@ -157,8 +153,6 @@ komodo_core_api_key: ""
 komodo_core_api_secret: ""
 server_name: "{{ inventory_hostname }}"
 server_address: "" # Leave blank to try and autodetect
-server_passkey: "" # Leave blank to use global passkeys in core configuration
-generate_server_passkey: false # Allow a generation of a random passkey
 
 # Override komodo_bin name directly if needed for a custom build
 komodo_bin: ""

@@ -107,7 +107,7 @@
             config:
               address: "{{ _server_address }}"
               enabled: true
-              passkey: "{{ server_passkey }}"
+              passkey: "{{ server_passkey | default('')}}"
         status_code: 200
         return_content: true
       retries: 2
@@ -129,7 +129,7 @@
             config:
               address: "{{ _server_address }}"
               enabled: true
-              passkey: "{{ server_passkey }}"
+              passkey: "{{ server_passkey | default('')}}"
         status_code: 200
         return_content: true
       retries: 2

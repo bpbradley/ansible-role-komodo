@@ -74,6 +74,7 @@ server_enabled = {{ komodo_server_enabled | bool | lower }}
   (
     [komodo_passkeys] | default([], true) | flatten
     + [server_passkey | default('')]
+    + [passkey | default('')]
   )
   | map('string') | map('trim')
   | reject('equalto','') | unique | list
