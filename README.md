@@ -28,8 +28,8 @@ For all role variables, see [`defaults/main.yml`](./defaults/main.yml) for more 
 
 | Variable                                  | Default               | Description                                                                       |
 | ----------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
-| **komodo\_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
-| **komodo\_version**                       | `v1.19.5`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
+| **komodo_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
+| **komodo_version**                       | `v1.19.5`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
 
 > [!NOTE]
 > `install` and `update` are almost functionally identical, except that `install`
@@ -120,9 +120,9 @@ By default, the komodo user (i.e. the user perhiphery is run as) is managed by t
 
 | Variable                                     | Default                                | Description                                                                                                                                             |
 | -------------------------------------------- | ---------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **allow\_create\_komodo\_user**              | `true` on `install`, otherwise `false` | Allows `komodo_user` to be created. Will be created as a service account with no login, unless the user exists already in which case it wont be touched |
-| **allow\_modify\_komodo\_user**              | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`, and allows the role to add the user to the `docker` group                |
-| **allow\_delete\_komodo\_user**              | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
+| **allow_create_komodo_user**                 | `true` on `install`, otherwise `false` | Allows `komodo_user` to be created. Will be created as a service account with no login, unless the user exists already in which case it wont be touched |
+| **allow_modify_komodo_user**                 | `true`                                 | Allows the role to enable or disable linger, when `komodo_service_scope=user`, and allows the role to add the user to the `docker` group                |
+| **allow_delete_komodo_user**                 | `false`                                | Allows the role to delete the `komodo_user` on `komodo_action=uninstall`. This **must** be set explicitly, it is never defaulted true                   |
 
 ## Systemd Configuration
 
@@ -141,7 +141,7 @@ Least-privilege is the default, so **user** scope is recommended. For a deeper c
 
 | Variable                    | Default | Description                                                                            |
 |-----------------------------|---------|----------------------------------------------------------------------------------------|
-| **komodo\_service\_scope**  | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
+| **komodo_service_scope**    | `user`  | `user` or `system`. See [Systemd User vs System Units](#systemd-user-vs-system-units). |
 
 ## Periphery Specific Providers
 
@@ -149,8 +149,8 @@ You can define providers in the periphery configuration that will only be availa
 
 | Variable                          | Default | Description                                                                                                      |
 | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| **komodo\_git\_providers**        | `[]`    | Configure Periphery based git providers. Example below                                                           |
-| **komodo\_registry\_providers**   | `[]`    | Configure Periphery based docker registries. Example below                                                       |
+| **komodo_git_providers**          | `[]`    | Configure Periphery based git providers. Example below                                                           |
+| **komodo_registry_providers**     | `[]`    | Configure Periphery based docker registries. Example below                                                       |
 
 Below are examples of the expected data structures
 
@@ -210,35 +210,35 @@ Some additional variables to tweak settings or override default behavior.
 
 | Variable                                          | Default                                         | Description                                                                                                     |
 | ------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **komodo\_user**                                  | `komodo`                                        | System user that owns files and runs the service                                                                |
-| **komodo\_group**                                 | `komodo`                                        | Group that owns files and runs the service                                                                      |
-| **komodo\_uid**                                   | `<not-set>`                                     | User ID for komodo\_user (system-chosen by default)                                                             |
-| **komodo\_gid**                                   | `<not-set>`                                     | Group ID for komodo\_group (system-chosen by default)                                                           |
-| **komodo\_home**                                  | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                                                                 |
-| **komodo\_extra\_env**                            | `[]`                                            | Extra env vars available to periphery. Define in the same format as [Secrets](#adding-periphery-secrets)        |
-| **komodo\_agent\_secrets**                        | `[]`                                            | List (name/value pairs) for secrets only available to the agent. See [Secrets](#adding-periphery-secrets)       |
-| **komodo\_config\_dir**                           | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                                                                 |
-| **komodo\_config\_file\_template**                | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))                                                  |
-| **komodo\_config\_path**                          | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                                                                    |
-| **komodo\_service\_file\_template**               | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))                                                  |
-| **komodo\_periphery\_port**                       | `8120`                                          | TCP port the server listens on                                                                                  |
-| **komodo\_root\_directory**                       | `{{ komodo_home }}/.komodo`                     | Default root directory for periphery                                                                            |
-| **komodo\_repo\_dir**                             | `{{ komodo_root_directory }}/repos`             | Default root for repository check-outs                                                                          |
-| **komodo\_stack\_dir**                            | `{{ komodo_root_directory }}/stacks`            | Default root for stack folders                                                                                  |
-| **komodo\_build\_dir**                            | `{{ komodo_root_directory }}/build`             | Default root for builds                                                                                         |
-| **komodo\_stats\_polling\_rate**                  | `5-sec`                                         | Interval at which periphery polls the stack directory                                                           |
-| **komodo\_logging\_level**                        | `info`                                          | Periphery log level                                                                                             |
-| **komodo\_logging\_stdio**                        | `standard`                                      | Log output format                                                                                               |
-| **komodo\_logging\_opentelemetry\_service\_name** | `Komodo-Periphery`                              | Set the opentelemetry service name attached to the telemetry Periphery will send.                               |
-| **komodo\_logging\_otlp\_endpoint**               | `""`                                            | Specify a opentelemetry otlp endpoint to send traces to.                                                        |
-| **komodo\_logging\_pretty**                       | `false`                                         | Specify whether logging is more human readable.                                                                 |
-| **komodo\_logging\_pretty\_startup\_config**      | `false`                                         | Specify whether startup config log is more human readable (multi-line)                                          |
-| **komodo\_disable\_terminals**                    | `false`                                         | Disable the terminal APIs and disallow remote shell access through Periphery                                    |
-| **komodo\_disable\_container\_exec**              | `false`                                         | Disable the container exec APIs and disallow remote container shell access through Periphery.                   |
-| **komodo\_container\_stats\_polling\_rate**       | `30-sec`                                        | How often Periphery polls the host for container stats                                                          |
-| **komodo\_legacy\_compose\_cli**                  | `false`                                         | Whether stack actions should use `docker-compose` instead of `docker compose`                                   |
-| **komodo\_include\_disk\_mounts**                 | `[]`                                            | Optional. Only include mounts at specific paths in the disk report i.e. `["/mnt/include/1", "/mnt/include/2"]`  |
-| **komodo\_exclude\_disk\_mounts**                 | `[]`                                            | Optional. Don't include these mounts in the disk report. i.e. `["/mnt/exclude/1", "/mnt/exclude/2"]`            |
+| **komodo_user**                                   | `komodo`                                        | System user that owns files and runs the service                                                                |
+| **komodo_group**                                  | `komodo`                                        | Group that owns files and runs the service                                                                      |
+| **komodo_uid**                                    | `<not-set>`                                     | User ID for komodo_user (system-chosen by default)                                                             |
+| **komodo_gid**                                    | `<not-set>`                                     | Group ID for komodo_group (system-chosen by default)                                                           |
+| **komodo_home**                                   | `/home/{{ komodo_user }}`                       | Home directory of `komodo_user`                                                                                 |
+| **komodo_extra_env**                              | `[]`                                            | Extra env vars available to periphery. Define in the same format as [Secrets](#adding-periphery-secrets)        |
+| **komodo_agent_secrets**                          | `[]`                                            | List (name/value pairs) for secrets only available to the agent. See [Secrets](#adding-periphery-secrets)       |
+| **komodo_config_dir**                             | `{{ komodo_home }}/.config/komodo`              | Directory that holds Komodo configuration files                                                                 |
+| **komodo_config_file_template**                   | `periphery.config.toml.j2`                      | ([Refer to Note](#overriding-default-configuration-templates))                                                  |
+| **komodo_config_path**                            | `{{ komodo_config_dir }}/periphery.config.toml` | Destination path of the rendered config file                                                                    |
+| **komodo_service_file_template**                  | `periphery.service.j2`                          | ([Refer to Note](#overriding-default-configuration-templates))                                                  |
+| **komodo_periphery_port**                         | `8120`                                          | TCP port the server listens on                                                                                  |
+| **komodo_root_directory**                         | `{{ komodo_home }}/.komodo`                     | Default root directory for periphery                                                                            |
+| **komodo_repo_dir**                               | `{{ komodo_root_directory }}/repos`             | Default root for repository check-outs                                                                          |
+| **komodo_stack_dir**                              | `{{ komodo_root_directory }}/stacks`            | Default root for stack folders                                                                                  |
+| **komodo_build_dir**                              | `{{ komodo_root_directory }}/build`             | Default root for builds                                                                                         |
+| **komodo_stats_polling_rate**                     | `5-sec`                                         | Interval at which periphery polls the stack directory                                                           |
+| **komodo_logging_level**                          | `info`                                          | Periphery log level                                                                                             |
+| **komodo_logging_stdio**                          | `standard`                                      | Log output format                                                                                               |
+| **komodo_logging_opentelemetry_service_name**     | `Komodo-Periphery`                              | Set the opentelemetry service name attached to the telemetry Periphery will send.                               |
+| **komodo_logging_otlp_endpoint**                  | `""`                                            | Specify a opentelemetry otlp endpoint to send traces to.                                                        |
+| **komodo_logging_pretty**                         | `false`                                         | Specify whether logging is more human readable.                                                                 |
+| **komodo_logging_pretty_startup_config**          | `false`                                         | Specify whether startup config log is more human readable (multi-line)                                          |
+| **komodo_disable_terminals**                      | `false`                                         | Disable the terminal APIs and disallow remote shell access through Periphery                                    |
+| **komodo_disable_container_exec**                 | `false`                                         | Disable the container exec APIs and disallow remote container shell access through Periphery.                   |
+| **komodo_container_stats_polling_rate**           | `30-sec`                                        | How often Periphery polls the host for container stats                                                          |
+| **komodo_legacy_compose_cli**                     | `false`                                         | Whether stack actions should use `docker-compose` instead of `docker compose`                                   |
+| **komodo_include_disk_mounts**                    | `[]`                                            | Optional. Only include mounts at specific paths in the disk report i.e. `["/mnt/include/1", "/mnt/include/2"]`  |
+| **komodo_exclude_disk_mounts**                    | `[]`                                            | Optional. Don't include these mounts in the disk report. i.e. `["/mnt/exclude/1", "/mnt/exclude/2"]`            |
 
 ### Inbound vs Outbound Connections
 
@@ -298,32 +298,7 @@ request the currently installed version on Komodo Core, and install the matching
 
 | Variable                                          | Default                                         | Description                                                                                                                                                                            |
 | ------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **komodo\_core\_http\_address**                   | Tries to derive from `komodo_core_address`      | This is the http endpoint for core, reachable by ansible localhost. If none provided, but a `komodo_core_address` is for outbound mode, attempts to derive the http endpoint from that |
-
-
-### Note on Generated Passkeys
-
-Enabling passkey generation for unique periphery passkeys with `generate_server_passkey=true` is potentially valuable, but if doing so remember to *always* enable
-this feature whenever you update or install that server. The generated passkey is not saved, it is used to configure periphery at the time of install and then thrown away.
-
-So for example, if you generated a random passkey on `install`, and then *DIDN'T* generate or set a passkey
-on a future `update`, the role will not have knowledge of a server passkey at all, and it will simply delete the randomly generated one that was previously provided,
-and it will not enforce passkey authentication, which is likely not the desired behavior. 
-
-Basically, the simple advice is to *ALWAYS* have `generate_server_passkey=true` or *ALWAYS* have `generate_server_passkey=false` for each server. I recommend setting
-these variables directly in an inventory file. See [`examples/server_management/inventory/all.yml`](./examples/server_management/inventory/all.yml) for an example.
-
-If this is not preferred, you can always generate on install, and then record the generated passkeys and include that explicitly in your `komodo_passkeys` from thereon.
-Or you can of course just always set your own randomly generated passkeys.
-
-### Overriding default configuration templates
-
-In some cases, it may be desirable to have more control over the exact service files and/or configuration files deployed to each periphery node.
-In this case, the default / interpolated configurations and service files may not be ideal. These configurations can be overridden by manually providing
-the config and/or service files and setting them in your playbook to `komodo_config_file_template` and `komodo_service_file_template`, for the
-periphery configuration and the systemd service file, respectively.
-
-Note that in doing so, the deployed files will be exactly as you specify, and they will always take precedence over any other specified variables.
+| **komodo_core_http_address**                      | Tries to derive from `komodo_core_address`      | This is the http endpoint for core, reachable by ansible localhost. If none provided, but a `komodo_core_address` is for outbound mode, attempts to derive the http endpoint from that |
 
 ### Adding Periphery Secrets
 
