@@ -38,7 +38,7 @@ connect_as = "{{ komodo_connect_as }}"
 onboarding_key = "{{ komodo_onboarding_key | string | trim }}"
 {% endif %}
 {% endif %}
-{% if  komodo_server_enabled or _komodo_version is version('2.0.0', '<') %}
+{% if komodo_server_enabled or _komodo_version is version('2.0.0', '<') %}
 ################
 # INBOUND MODE #
 ################
