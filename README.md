@@ -80,7 +80,7 @@ As a rule of thumb, chose *one* of the below connection flows for each host (alt
 
 > [!WARNING]
 > Supported for backwards compatibility and required for Core < 2.0.0. On Core ≥ 2.0.0 you’ll see deprecation warnings.
-> Migrate by replacing komodo_passkeys with komodo_core_public_key.
+> Migrate by replacing `komodo_passkeys` with `komodo_core_public_key`.
 
 | Variable                  | Default | Description                                             |
 | ------------------------- | ------- | ------------------------------------------------------- |
