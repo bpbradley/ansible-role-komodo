@@ -92,6 +92,29 @@ As a rule of thumb, chose *one* of the below connection flows for each host (alt
 | **komodo_ssl_key_file**   | `None`  | Path to an existing key with ownership `komodo:komodo`. |
 | **komodo_ssl_cert_file**  | `None`  | Path to an existing cert with ownership `komodo:komodo`.|
 
+## Key Management
+
+Every Periphery deployment will have a private/public key pair used for mutual authentication
+with Komodo Core using a key exchange process. For the most part, this role (and the default behavior of periphery)
+try to minimize effort to manage these keys by the end user. For example, in [Outbound](#outbound-connection-flow),
+all keys can be completely managed by default.
+
+If however you must manually set keys (as with `komodo_core_public_key` in Inbound mode), it is
+highly recommended that these keys be managed in their own *file* rather than as a raw key in the config file.
+
+The reason for this is that when keys are managed in files, key rotation for both Core and Periphery key pairs
+can be managed. If these are not written to files, then a key rotation will break connection.
+
+For that reason, all *raw keys* provided to either `komodo_core_public_key` or `komodo_private_key` will
+be materialized to a file in `{{ komodo_root_directory }}/keys` by default. This behavior can be controlled
+by overriding these variables.
+
+| Variable                       | Default | Description                                                                   |
+| ------------------------------ | --------| ----------------------------------------------------------------------------- |
+| **allow_write_keys_to_files**  | `true`  | Raw keys are materialized to files in `{{ komodo_root_directory }}/keys`      |
+| **allow_overwrite_key_files**  | `false` | If a file already exists for this key, it will only overwrite it if allowed.  |
+
+
 ## Komodo User Management
 
 By default, the komodo user (i.e. the user perhiphery is run as) is managed by this role, and the level of management of the `komodo_user` is influenced by the `komodo_action`
