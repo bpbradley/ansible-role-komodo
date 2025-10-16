@@ -57,7 +57,7 @@ As a rule of thumb, choose *one* connection flow per-host (they’re not mutuall
 
 1. Recommendation is [Outbound](#outbound-connection) (Periphery -> Core), when topology allows it (Periphery can reach Core)
 2. **Otherwise** use [Inbound](#inbound-connection) (Core -> Periphery)
-3. [Legacy](#legacy-connection-flow) when using Core version < 2.0.0
+3. [Legacy](#legacy-connection) when using Core version < 2.0.0
 
 ### Outbound Connection
 
@@ -108,7 +108,7 @@ As a rule of thumb, choose *one* connection flow per-host (they’re not mutuall
 
 Every Periphery deployment will have a private/public key pair used for mutual authentication
 with Komodo Core using a key exchange process. For the most part, this role (and the default behavior of periphery)
-try to minimize effort to manage these keys by the end user. For example, in [Outbound](#outbound-connection-flow),
+try to minimize effort to manage these keys by the end user. For example, in [Outbound](#outbound-connection),
 all keys can be completely managed securely with default settings.
 
 If however you must manually set keys (as with `komodo_core_public_key` in Inbound mode), it is
