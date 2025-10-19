@@ -47,35 +47,35 @@
             | list
           }}
       block:
-      - name: Find deprecated configs present
-        ansible.builtin.set_fact:
-          _deprecated_configs: >-
-            {{
-              (_deprecated_configs | default([]))
-              + [ item | combine({'hits': (item.old | intersect(_all_var_keys))}) ]
-            }}
-        when:
-          - (item.old | intersect(_all_var_keys)) | length > 0
-          - item.after_version is not defined or ((_komodo_version | default("0.0.0")) is version(item.after_version, '>='))
-        loop: "{{ deprecated_configs }}"
-        loop_control:
-          label: "{{ (item.old | intersect(_all_var_keys)) | join(', ') | default('none') }}"
-        changed_when: false
+        - name: Find deprecated configs present
+          ansible.builtin.set_fact:
+            _deprecated_configs: >-
+              {{
+                (_deprecated_configs | default([]))
+                + [ item | combine({'hits': (item.old | intersect(_all_var_keys))}) ]
+              }}
+          when:
+            - (item.old | intersect(_all_var_keys)) | length > 0
+            - item.after_version is not defined or ((_komodo_version | default("0.0.0")) is version(item.after_version, '>='))
+          loop: "{{ deprecated_configs }}"
+          loop_control:
+            label: "{{ (item.old | intersect(_all_var_keys)) | join(', ') | default('none') }}"
+          changed_when: false
 
-      - name: Variable Deprecation Warnings
-        warn:
-          msg: "[DEPRECATION] {{ item.old }} is deprecated. Use {{ item.new }}."
-        when: _deprecated_vars | length > 0
-        loop: "{{ _deprecated_vars }}"
-        loop_control:
-          label: "{{ item.old }} -> {{ item.new }}"
-        changed_when: false
+        - name: Variable Deprecation Warnings
+          warn:
+            msg: "[DEPRECATION] {{ item.old }} is deprecated. Use {{ item.new }}."
+          when: _deprecated_vars | length > 0
+          loop: "{{ _deprecated_vars }}"
+          loop_control:
+            label: "{{ item.old }} -> {{ item.new }}"
+          changed_when: false
 
-      - name: Configuration Deprecation Warnings
-        when: _deprecated_configs | default([]) | length > 0
-        warn:
-          msg: "[DEPRECATION] vars={{ item.hits | join(', ') }} defined: {{ item.note }}"
-        loop: "{{ _deprecated_configs }}"
-        loop_control:
-          label: "{{ item.hits | join(' | ') }} is Deprecated!"
-        changed_when: false
+        - name: Configuration Deprecation Warnings
+          when: _deprecated_configs | default([]) | length > 0
+          warn:
+            msg: "[DEPRECATION] vars={{ item.hits | join(', ') }} defined: {{ item.note }}"
+          loop: "{{ _deprecated_configs }}"
+          loop_control:
+            label: "{{ item.hits | join(' | ') }} is Deprecated!"
+          changed_when: false
