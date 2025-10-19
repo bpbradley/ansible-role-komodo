@@ -22,7 +22,7 @@ komodo_server_enabled: >-
   }}
 
 # Public key of komodo core. In outbound mode, this is for "pinning" to specifc core instances.
-# In inbound mode, this is the public key clients will use to authenticate with core.  
+# In inbound mode, this is the public key clients will use to authenticate with core.
 # If we're in outbound mode, default to a file: reference.
 # The idea being that we will by default create the file, and komodo will
 # pin the core pubkey on first connection.
@@ -71,7 +71,8 @@ allow_modify_komodo_user: true
 allow_delete_komodo_user: false
 # Allows materialzing raw keys to files instead of keeping them in config file, which allows easier key rotation.
 allow_write_keys_to_files: true
-# Use this when you need to replace key file contents from playbook run. By default, it will only write files that don't exist yet,  so that rotated keys aren't overwritten with old keys.
+# Use this when you need to replace key file contents from playbook run.
+# By default, it will only write files that don't exist yet,  so that rotated keys aren't overwritten with old keys.
 allow_overwrite_key_files: false
 
 # Add name/value pairs containing secrets that periphery will have internal access to

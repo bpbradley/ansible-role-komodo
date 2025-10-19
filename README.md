@@ -24,29 +24,35 @@ the numerous edge cases which appear when running it as a docker container.
 
 ## Required Role Variables
 
-Below are the only required variables if otherwise relying on defaults, but refer to [Basic Installation](#basic-installation--setup) for a recommended simple and secure setup
+Only the `komodo_action` variable is required, to specify the intended behavior for the play.
+Relying fully on defaults will work, but will result in a less secure setup as it will choose
+an [inbound connection](#inbound-connection) without authentication.
+
+>[!TIP]
+> Refer to [Basic Installation](#basic-installation--setup) for a recommended simple and secure setup
 
 | Variable                                 | Default               | Description                                                                       |
 | ---------------------------------------- | ----------------------| --------------------------------------------------------------------------------- |
 | **komodo_action**                        | `None`                | `install`, `update`, or `uninstall`                                               |
-| **komodo_version**                       | `v1.19.5`             | Release tag, or `latest`/`core` for [automatic versioning](#automatic-versioning) |
 
 > [!NOTE]
 > `install` and `update` are almost functionally identical, except that `install`
 > by default allows creation of the `komodo_user`.
 > See [Komodo User Management](#komodo-user-management).
 
-## Automatic Versioning
+## Version Management
 
+* Set `komodo_version=X.Y.Z` to install a specific version.
 * Set `komodo_version=latest` to install the newest GitHub release. 
-* Set `komodo_version=core` to match the version reported by Komodo Core.
-  * Core must expose a reachable /version endpoint (Komodo Core **v2.0.0+**)
-  * **OR** For earlier Core versions, provide API credentials as described in [Server Management](#server-management)
+* Set `komodo_version=core` to match the version reported by Komodo Core. Must provide `komodo_core_http_address` to prove core.
+  * Core must expose a reachable `/version` endpoint (Komodo Core **v2.0.0+**)
+  * **OR** For earlier Core versions (v1), provide API credentials as described in [Server Management](#server-management)
   * `komodo_core_http_address` must be reachable from the **Ansible control host**
 
-| Variable                                          | Default                                         | Description                                       |
-| ------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
-| **komodo_core_http_address**                      | Derived from `komodo_core_address`              | ex. `https://komodo.example.com` or `http:IP:9120`|
+| Variable                      | Default                             | Description                                                                                |
+| ----------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| **komodo_version**            | `2.0.0`                             | Release tag, or `latest`/`core` for automatic versioning                                   |
+| **komodo_core_http_address**  | Derived from `komodo_core_address`  | **Required when `komodo_version=core`.** ex. `https://komodo.example.com` or `http:IP:9120`|
 
 ## Connection Flow
 

@@ -50,7 +50,7 @@ all:
             internal_server:
               # Maybe you want to reach core with a different address on some servers.
               # You can override the group var here.
-              komodo_core_address: "wss://komodo.example.com" 
+              komodo_core_address: "wss://komodo.example.com"
         periphery:
           hosts:
             external_server:
