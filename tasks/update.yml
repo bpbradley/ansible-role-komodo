@@ -23,7 +23,7 @@
           register: _core_version
 
         - name: Query Core API to get Komodo version
-          when: _core_version.status != 200
+          when: _core_version.skipped or _core_version.status != 200
           changed_when: false
           delegate_to: localhost
           run_once: true
