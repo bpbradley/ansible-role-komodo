@@ -1,17 +1,67 @@
-komodo_version: "v1.19.5"
+komodo_version: "2.0.0"
+
+## OUTBOUND CONNECTION SETTINGS ##
+
+# The websocket address of komodo core connecting to. i.e. wss://komodo.example.com or ws://IP:PORT
+komodo_core_address: ""
+# Private key used for authentication. Leave blank to auto-generate (recommended).
+komodo_private_key: ""
+# The name of the "server" in komodo core to "connect as". Defaults to inventory_hostname
+komodo_connect_as: "{{ inventory_hostname }}"
+# In outbound mode, this is the onboarding key used to register with komodo core.
+# It allows for a new server to be created on core side automatically.
+komodo_onboarding_key: ""
+
+## INBOUND CONNECTION SETTINGS ##
+
+# Whether komodo periphery should run in server mode (inbound connections) or client mode (outbound connections).
+# Default behavior automatically selects mode based on whether komodo_core_address is defined (outbound mode)
+komodo_server_enabled: >-
+  {{
+    (komodo_core_address | default('') | string | trim | length) == 0
+  }}
+
+# Public key of komodo core. In outbound mode, this is for "pinning" to specifc core instances.
+# In inbound mode, this is the public key clients will use to authenticate with core.  
+# If we're in outbound mode, default to a file: reference.
+# The idea being that we will by default create the file, and komodo will
+# pin the core pubkey on first connection.
+komodo_core_public_key: >-
+  {{
+    komodo_server_enabled
+      | ternary('', 'file:' ~ komodo_root_directory ~ '/keys/core.pub')
+  }}
+
+# Address to bind the komodo periphery server to in inbound mode.
+komodo_bind_ip: "[::]"
+
+# Allowed client IPs/CIDRs for inbound connections. Leave empty to allow all.
+komodo_allowed_ips: []
+#############
+
+# The http(s) address of komodo core. Used for API access or for probing /version input
+# Prefer komodo_core_url if provided for backwards compatibility otherwise derive from WS address.
+komodo_core_http_address: >-
+  {{
+    (komodo_core_url | default('', true) | string | trim)
+      | default(
+          (
+            ([komodo_core_address] | default([], true) | flatten
+             | map('string') | map('trim') | reject('equalto','') | list
+             | first | default('')
+            )
+            | regex_replace('^wss://','https://')
+            | regex_replace('^ws://','http://')
+          ),
+          true
+        )
+      | regex_replace('/+$','')
+  }}
 
 # This defines the systemd service scope.
 # "user" will run the service as a user service (default, recommended)
 # "system" will run the service as a system service, running as the komodo_user
 komodo_service_scope: "user"
-
-# New to v1.17.1 which introduces IPv6 support.
-# If you have issues, set `komodo_bind_ip` to `0.0.0.0`
-# to revert to previous behaviour.
-komodo_bind_ip: "[::]"
-
-# Replace with your komodo core IP if desired so that only core can access it
-komodo_allowed_ips: []
 
 # Allows creation of the komodo user if needed
 allow_create_komodo_user: "{{ (komodo_action | default('update')) == 'install' }}"
@@ -19,6 +69,10 @@ allow_create_komodo_user: "{{ (komodo_action | default('update')) == 'install' }
 allow_modify_komodo_user: true
 # Allows deletion of the komodo user during uninstall
 allow_delete_komodo_user: false
+# Allows materialzing raw keys to files instead of keeping them in config file, which allows easier key rotation.
+allow_write_keys_to_files: true
+# Use this when you need to replace key file contents from playbook run. By default, it will only write files that don't exist yet,  so that rotated keys aren't overwritten with old keys.
+allow_overwrite_key_files: false
 
 # Add name/value pairs containing secrets that periphery will have internal access to
 # Example:
@@ -109,46 +163,8 @@ komodo_git_providers: []
 #          <redacted>
 komodo_registry_providers: []
 
-
-#### KOMODO V2.0.0 SETTINGS ####
-allow_overwrite_key_files: false
-allow_write_keys_to_files: true
-komodo_core_address: ""
-komodo_private_key: ""
-komodo_connect_as: "{{ inventory_hostname }}"
-komodo_server_enabled: >-
-  {{
-    (komodo_core_address | default('') | string | trim | length) == 0
-  }}
-# If we're in outbound mode, default to a file: reference.
-# The idea being that we will by default create the file, and komodo will
-# pin the core pubkey on first connection.
-komodo_core_public_key: >-
-  {{
-    komodo_server_enabled
-      | ternary('', 'file:' ~ komodo_root_directory ~ '/keys/core.pub')
-  }}
-komodo_onboarding_key: ""
-
 # Server management functions. Not as useful with komodo v2.0.0+ and outbound connections.
 enable_server_management: false
-# Prefer komodo_core_url if provided for backwards compatibility otherwise derive from WS address.
-komodo_core_http_address: >-
-  {{
-    (komodo_core_url | default('', true) | string | trim)
-      | default(
-          (
-            ([komodo_core_address] | default([], true) | flatten
-             | map('string') | map('trim') | reject('equalto','') | list
-             | first | default('')
-            )
-            | regex_replace('^wss://','https://')
-            | regex_replace('^ws://','http://')
-          ),
-          true
-        )
-      | regex_replace('/+$','')
-  }}
 komodo_core_api_key: ""
 komodo_core_api_secret: ""
 server_name: "{{ inventory_hostname }}"
