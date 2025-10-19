@@ -44,7 +44,7 @@ an [inbound connection](#inbound-connection) without authentication.
 
 * Set `komodo_version=X.Y.Z` to install a specific version.
 * Set `komodo_version=latest` to install the newest GitHub release. 
-* Set `komodo_version=core` to match the version reported by Komodo Core. Must provide `komodo_core_http_address` to prove core.
+* Set `komodo_version=core` to match the version reported by Komodo Core. Must provide `komodo_core_http_address` to probe core.
   * Core must expose a reachable `/version` endpoint (Komodo Core **v2.0.0+**)
   * **OR** For earlier Core versions (v1), provide API credentials as described in [Server Management](#server-management)
   * `komodo_core_http_address` must be reachable from the **Ansible control host**
