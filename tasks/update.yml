@@ -4,7 +4,7 @@
     msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
   when: ansible_architecture not in ['x86_64', 'aarch64']
 
-- name: Resolve komodo_version
+- name: Resolve Komodo version
   block:
     - name: Handle automatic versioning with core
       when: komodo_version | lower == "core"
@@ -45,7 +45,7 @@
             timeout: 15
           register: _api_core_version
 
-        - name: Set komodo_version to Komodo Core response
+        - name: Set Komodo version to Komodo Core response
           ansible.builtin.set_fact:
             _komodo_version: >-
               {{
@@ -58,7 +58,7 @@
               }}
           changed_when: false
 
-    - name: Handle automatic versioning to latest
+    - name: Handle automatic versioning set to latest
       when: komodo_version | lower == "latest"
       block:
         - name: Query GitHub for the latest Komodo release
@@ -75,7 +75,7 @@
             timeout: 15
           register: _gh_release
 
-        - name: Set komodo_version to latest GitHub tag
+        - name: Set Komodo version to latest GitHub tag
           ansible.builtin.set_fact:
             _komodo_version: "{{ _gh_release.json.tag_name | regex_replace('^v', '') }}"
           changed_when: false
@@ -135,7 +135,7 @@
     - "{{ komodo_root_directory }}/keys"
   when: item != (komodo_root_directory ~ '/keys') or (_komodo_version is version('2.0.0','>='))
 
-- name: Manage Komodo Core Auth Keys
+- name: Manage Komodo Core auth keys
   when: _komodo_version is version('2.0.0','>=')
   vars:
     _normalized_core_keys: >-
@@ -144,13 +144,13 @@
         | map('string') | map('trim') | reject('equalto','') | unique | list
       }}
   block:
-    - name: Materialize Keys To Files
+    - name: Materialize keys to files
       when: allow_write_keys_to_files | bool
       block:
-        - name: Handle Core Public Key Files
+        - name: Handle Core public key files
           when: (_normalized_core_keys | length) > 0
           block:
-            - name: Write Core Public Key Files
+            - name: Write Core public key files
               ansible.builtin.template:
                 src: core.pub.j2
                 dest: "{{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
@@ -165,7 +165,7 @@
                 index_var: idx
               when: item is not match('^file:')
 
-            - name: Build Core Public Key References
+            - name: Build Core public key references
               ansible.builtin.set_fact:
                 _core_public_keys: >-
                   {{
@@ -181,12 +181,12 @@
                 index_var: idx
                 label: "pubkey[{{ idx }}] => {{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
 
-        - name: Handle Private Key File
+        - name: Handle private key file
           when:
             - komodo_private_key | string | trim | length > 0
             - not (komodo_private_key | string | trim) is match('^file:')
           block:
-            - name: Write Private Key File
+            - name: Write private key file
               ansible.builtin.template:
                 src: periphery.key.j2
                 dest: "{{ komodo_root_directory }}/keys/periphery.key"
@@ -197,11 +197,11 @@
               vars:
                 _raw_komodo_private_key: "{{ komodo_private_key | string | trim }}"
 
-            - name: Set Private Key Reference
+            - name: Set private key reference
               ansible.builtin.set_fact:
                 _periphery_private_key: "file:{{ komodo_root_directory }}/keys/periphery.key"
 
-    - name: Ensure Key References
+    - name: Ensure key references
       ansible.builtin.set_fact:
         _core_public_keys: "{{ _core_public_keys | default(_normalized_core_keys) }}"
         _periphery_private_key: "{{ _periphery_private_key | default(komodo_private_key) }}"
@@ -224,7 +224,7 @@
     path: "{{ komodo_bin_path }}"
     state: absent
 
-- name: Download Komodo Periphery Agent
+- name: Download Komodo Periphery binary
   become: true
   vars:
     _download_sources:
@@ -265,7 +265,7 @@
   when:
     - komodo_service_scope == 'user'
 
-- name: Install Systemd Unit File
+- name: Install systemd unit file
   ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
   become: true
   vars:

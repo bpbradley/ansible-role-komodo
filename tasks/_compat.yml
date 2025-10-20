@@ -21,7 +21,7 @@
           switch to Outbound Connection (`komodo_server_enabled=false`) or use
           `komodo_core_public_key` with Inbound Connection.
   block:
-    - name: Cache defined var names on this host
+    - name: Cache defined var names
       vars:
         _candidates: >-
           {{
@@ -62,7 +62,7 @@
             label: "{{ (item.old | intersect(_all_var_keys)) | join(', ') | default('none') }}"
           changed_when: false
 
-        - name: Variable Deprecation Warnings
+        - name: Variable deprecation warnings
           warn:
             msg: "[DEPRECATION] {{ item.old }} is deprecated. Use {{ item.new }}."
           when: _deprecated_vars | length > 0
@@ -71,7 +71,7 @@
             label: "{{ item.old }} -> {{ item.new }}"
           changed_when: false
 
-        - name: Configuration Deprecation Warnings
+        - name: Configuration deprecation warnings
           when: _deprecated_configs | default([]) | length > 0
           warn:
             msg: "[DEPRECATION] vars={{ item.hits | join(', ') }} defined: {{ item.note }}"

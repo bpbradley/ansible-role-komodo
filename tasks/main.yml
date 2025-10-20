@@ -8,11 +8,11 @@
 - name: Build Komodo user context
   ansible.builtin.import_tasks: _user_ctx.yml
 
-- name: Setup Komodo User
+- name: Setup Komodo user
   ansible.builtin.include_tasks: setup_user.yml
   when: komodo_action in ["install","update"]
 
-- name: Update Komodo Periphery Agent
+- name: Update Komodo Periphery
   ansible.builtin.include_tasks: update.yml
   when: komodo_action in ["install","update"]
 
@@ -27,5 +27,5 @@
   ansible.builtin.include_tasks: uninstall.yml
   when: komodo_action == "uninstall"
 
-- name: Compatibility Checks
+- name: Compatibility checks
   ansible.builtin.import_tasks: _compat.yml
