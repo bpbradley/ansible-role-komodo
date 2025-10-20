@@ -21,8 +21,7 @@
   when:
     - komodo_action in ["install","update"]
     - enable_server_management | bool
-    - komodo_version is version('2.0.0', '<')
-    - komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool)
+    - _komodo_version is version('2.0.0', '<') or (_komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool))
 
 - name: Periphery uninstall tasks
   ansible.builtin.include_tasks: uninstall.yml

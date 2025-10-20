@@ -111,8 +111,7 @@
     - enable_server_management | bool | default(false)
     - generate_server_passkey | bool | default(false)
     - server_passkey is not defined or (server_passkey | string | trim | length == 0)
-    - komodo_version is version('2.0.0', '<')
-    - komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool)
+    - _komodo_version is version('2.0.0', '<') or (_komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool))
   ansible.builtin.set_fact:
     server_passkey: >-
       {{
