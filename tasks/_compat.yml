@@ -21,20 +21,25 @@
           switch to Outbound Connection (`komodo_server_enabled=false`) or use
           `komodo_core_public_key` with Inbound Connection.
   block:
-    - name: Cache defined var names
+    - name: Cache defined vars
       vars:
-        _candidates: >-
+        _cand_keys: >-
           {{
             (deprecated_vars | map(attribute='old') | list)
-            | union( (deprecated_configs | map(attribute='old') | list) | flatten )
+            | union((deprecated_configs | map(attribute='old') | list) | flatten)
+            | unique
           }}
       ansible.builtin.set_fact:
-        _all_var_keys: "{{ (_all_var_keys | default([])) + [item] }}"
-      loop: "{{ _candidates | unique }}"
-      when:
-        - item in vars
-        - vars[item] is not none
-        - vars[item] not in [False, '', [], {}]
+        _all_var_keys: >-
+          {{
+            dict(
+              (_cand_keys | select('in', vars.keys()) | list)
+              | zip((_cand_keys | select('in', vars.keys()) | map('extract', vars) | list))
+            )
+            | dict2items
+            | map(attribute='key')
+            | list
+          }}
       changed_when: false
 
     - name: Find deprecated vars present
@@ -55,11 +60,11 @@
                 + [ item | combine({'hits': (item.old | intersect(_all_var_keys))}) ]
               }}
           when:
-            - (item.old | intersect(_all_var_keys)) | length > 0
+            - (item.old | intersect(_all_var_keys | default([]))) | length > 0
             - item.after_version is not defined or ((_komodo_version | default("0.0.0")) is version(item.after_version, '>='))
           loop: "{{ deprecated_configs }}"
           loop_control:
-            label: "{{ (item.old | intersect(_all_var_keys)) | join(', ') | default('none') }}"
+            label: "{{ (item.old | intersect(_all_var_keys | default([]))) | join(', ') | default('none') }}"
           changed_when: false
 
         - name: Variable deprecation warnings
