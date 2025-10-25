@@ -28,4 +28,5 @@
   when: komodo_action == "uninstall"
 
 - name: Compatibility checks
-  ansible.builtin.import_tasks: _compat.yml
+  ansible.builtin.include_tasks: _compat.yml
+  when: allow_komodo_deprecation_checks | bool | default(true)
