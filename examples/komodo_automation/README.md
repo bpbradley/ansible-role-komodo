@@ -324,16 +324,14 @@ async function followContainerLogs(server: Server, containerId: string): Promise
     let recapSeen = false;
     let recapText: string | null = null;
     try {
-      await komodo.write("CreateTerminal", { 
-        server: server.name, 
-        name: term, 
-        command: "/bin/bash", 
-        recreate: Types.TerminalRecreateMode.Always 
-      });
-      await komodo.execute_terminal({ 
+      await komodo.execute_server_terminal({ 
         server: server.name, 
         terminal: term, 
-        command: `${streamCmd}` 
+        command: `${streamCmd}`,
+        init: {
+          command: "bash",
+          recreate: Types.TerminalRecreateMode.Always
+        }
         },{
           onLine: (line) => {
             if (!recapSeen) {
