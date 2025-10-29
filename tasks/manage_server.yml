@@ -70,6 +70,7 @@
 
 - name: Manage Server creation via Komodo Core API
   delegate_to: localhost
+  become: false
   block:
     - name: Check for existing server on Komodo Core
       check_mode: false

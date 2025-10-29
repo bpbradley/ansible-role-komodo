@@ -229,6 +229,7 @@ We are primarily controlling execution with inventory settings and Action argume
         seconds: "{{ pause_after_seconds | default(10) }}"
       run_once: true
       delegate_to: localhost
+      become: false
       when: pause_after | default(false) | bool
 ```
 
