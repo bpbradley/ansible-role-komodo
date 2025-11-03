@@ -127,6 +127,7 @@ komodo_logging_pretty: false
 komodo_logging_pretty_startup_config: false
 
 komodo_disable_terminals: false
+komodo_default_terminal_command: "bash"
 komodo_disable_container_exec: false
 komodo_container_stats_polling_rate: "30-sec"
 komodo_legacy_compose_cli: false
