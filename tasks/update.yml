@@ -243,16 +243,6 @@
     group: "{{ komodo_group }}"
     force: true
 
-- name: Deploy configuration file
-  become: true
-  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-  ansible.builtin.template:
-    src: "{{ komodo_config_file_template }}"
-    dest: "{{ komodo_config_path }}"
-    mode: "0640"
-    owner: "{{ komodo_user }}"
-    group: "{{ komodo_group }}"
-
 - name: Ensure user systemd dirs exist
   become: true
   loop:
@@ -267,6 +257,16 @@
     mode: "0750"
   when:
     - komodo_service_scope == 'user'
+
+- name: Deploy configuration file
+  become: true
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
+  ansible.builtin.template:
+    src: "{{ komodo_config_file_template }}"
+    dest: "{{ komodo_config_path }}"
+    mode: "0640"
+    owner: "{{ komodo_user }}"
+    group: "{{ komodo_group }}"
 
 - name: Install systemd unit file
   ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
