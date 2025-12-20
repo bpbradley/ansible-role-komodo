@@ -30,16 +30,7 @@
             | unique
           }}
       ansible.builtin.set_fact:
-        _all_var_keys: >-
-          {{
-            dict(
-              (_cand_keys | select('in', vars.keys()) | list)
-              | zip((_cand_keys | select('in', vars.keys()) | map('extract', vars) | list))
-            )
-            | dict2items
-            | map(attribute='key')
-            | list
-          }}
+        _all_var_keys: "{{ _cand_keys | intersect(query('varnames', '.+')) }}"
       changed_when: false
 
     - name: Find deprecated vars present

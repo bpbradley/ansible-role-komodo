@@ -1,8 +1,8 @@
 ---
 - name: Fail if unsupported architecture
   ansible.builtin.fail:
-    msg: "Unsupported architecture: {{ ansible_architecture }}. Supported architectures are x86_64 and aarch64."
-  when: ansible_architecture not in ['x86_64', 'aarch64']
+    msg: "Unsupported architecture: {{ ansible_facts.architecture }}. Supported architectures are x86_64 and aarch64."
+  when: ansible_facts.architecture not in ['x86_64', 'aarch64']
 
 - name: Resolve Komodo version
   block:
@@ -101,7 +101,7 @@
     binary_name: >-
       {%- if komodo_bin | length > 0 -%}
         {{ komodo_bin }}
-      {%- elif ansible_architecture == 'aarch64' -%}
+      {%- elif ansible_facts.architecture == 'aarch64' -%}
         {{ _komodo_bin_aarch64 }}
       {%- else -%} {# x86_64 #}{%- if _komodo_version is version('1.16.12', '>=') -%}
           {{ _komodo_bin_x86 }}

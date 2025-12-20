@@ -17,8 +17,8 @@
 
 - name: Set existence facts
   ansible.builtin.set_fact:
-    komodo_user_exists: "{{ (getent_passwd | default({})).get(komodo_user) is not none }}"
-    komodo_group_exists: "{{ (getent_group | default({})).get(komodo_group) is not none }}"
+    komodo_user_exists: "{{ (ansible_facts.getent_passwd | default({})).get(komodo_user) is not none }}"
+    komodo_group_exists: "{{ (ansible_facts.getent_group | default({})).get(komodo_group) is not none }}"
 
 - name: Build systemd context
   ansible.builtin.set_fact:
@@ -27,7 +27,7 @@
         become_user: "{{ komodo_user }}"
         scope: user
         environment:
-          XDG_RUNTIME_DIR: "{{ '/run/user/' ~ getent_passwd[komodo_user].1 | default(omit)}}"
+          XDG_RUNTIME_DIR: "{{ '/run/user/' ~ ansible_facts.getent_passwd[komodo_user].1 | default(omit)}}"
       system:
         become_user: "root"
         scope: system
