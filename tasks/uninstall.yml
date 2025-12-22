@@ -50,7 +50,7 @@
         path: "{{ item }}"
         state: absent
       with_items:
-        - "{{ komodo_bin_dir }}"
+        - "{{ komodo_bin_dir }}/periphery"
         - "{{ komodo_config_dir }}"
         - "/etc/komodo/ssl"
 
