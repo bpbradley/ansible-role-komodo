@@ -4,6 +4,9 @@
     msg: "Unsupported architecture: {{ ansible_facts.architecture }}. Supported architectures are x86_64 and aarch64."
   when: ansible_facts.architecture not in ['x86_64', 'aarch64']
 
+- name: Setup Komodo user
+  ansible.builtin.include_tasks: setup_user.yml
+
 - name: Resolve Komodo version
   block:
     - name: Handle automatic versioning with core
@@ -317,3 +320,10 @@
     name: periphery
     state: started
     scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+
+- name: Komodo server management tasks
+  ansible.builtin.include_tasks: manage_server.yml
+  when:
+    - enable_server_management | bool
+    - _komodo_version is version('2.0.0', '<') or (_komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool))
+

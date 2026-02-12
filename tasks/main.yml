@@ -8,20 +8,9 @@
 - name: Build Komodo user context
   ansible.builtin.import_tasks: _user_ctx.yml
 
-- name: Setup Komodo user
-  ansible.builtin.include_tasks: setup_user.yml
-  when: komodo_action in ["install","update"]
-
 - name: Update Komodo Periphery
   ansible.builtin.include_tasks: update.yml
   when: komodo_action in ["install","update"]
-
-- name: Komodo server management tasks
-  ansible.builtin.include_tasks: manage_server.yml
-  when:
-    - komodo_action in ["install","update"]
-    - enable_server_management | bool
-    - _komodo_version is version('2.0.0', '<') or (_komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool))
 
 - name: Periphery uninstall tasks
   ansible.builtin.include_tasks: uninstall.yml
