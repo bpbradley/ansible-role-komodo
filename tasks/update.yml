@@ -326,4 +326,3 @@
   when:
     - enable_server_management | bool
     - _komodo_version is version('2.0.0', '<') or (_komodo_version is version('2.0.0', '>=') and (komodo_server_enabled | bool))
-
