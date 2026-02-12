@@ -95,6 +95,29 @@
       ansible.builtin.debug:
         msg: "Using Komodo version: {{ _komodo_version }}"
 
+- name: Check currently installed binary version
+  ansible.builtin.command: "{{ komodo_bin_path }} --version"
+  register: _current_binary_state
+  failed_when: false
+  changed_when: false
+  check_mode: false
+
+- name: Parse installed version
+  ansible.builtin.set_fact:
+    _installed_version: "{{ _current_binary_state.stdout | default('') | split | last | regex_replace('^v', '') }}"
+
+- name: Display version information
+  ansible.builtin.debug:
+    msg: "Current: {{ _installed_version if _current_binary_state.rc == 0 else 'Not Installed' }} | Target: {{ _komodo_version }}"
+
+- name: Determine if binary update is required
+  ansible.builtin.set_fact:
+    _periphery_binary_needs_update: >-
+      {{
+        _current_binary_state.rc != 0 or
+        _installed_version != _komodo_version
+      }}
+
 - name: Select Komodo binary
   vars:
     _komodo_bin_x86: "periphery-x86_64"
@@ -165,6 +188,8 @@
           when: (_normalized_core_keys | length) > 0
           block:
             - name: Write Core public key files
+              register: _core_pub_keys_written
+              no_log: true
               ansible.builtin.template:
                 src: core.pub.j2
                 dest: "{{ komodo_root_directory }}/keys/core.{{ idx + 1 }}.pub"
@@ -201,6 +226,8 @@
             - not (komodo_private_key | string | trim) is match('^file:')
           block:
             - name: Write private key file
+              no_log: true
+              register: _periphery_priv_key_written
               ansible.builtin.template:
                 src: periphery.key.j2
                 dest: "{{ komodo_root_directory }}/keys/periphery.key"
@@ -221,6 +248,7 @@
         _periphery_private_key: "{{ _periphery_private_key | default(komodo_private_key) }}"
 
 - name: Stop periphery service
+  when: _periphery_binary_needs_update | bool
   become: true
   become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
   environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
@@ -232,6 +260,7 @@
   failed_when: false
 
 - name: Remove old binaries
+  when: _periphery_binary_needs_update | bool
   ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
   become: true
   ansible.builtin.file:
@@ -239,6 +268,7 @@
     state: absent
 
 - name: Download Komodo Periphery binary
+  when: _periphery_binary_needs_update | bool
   become: true
   vars:
     _download_sources:
@@ -270,6 +300,7 @@
     - komodo_service_scope == 'user'
 
 - name: Deploy configuration file
+  register: _config_file_written
   become: true
   ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
   ansible.builtin.template:
@@ -280,6 +311,7 @@
     group: "{{ komodo_group }}"
 
 - name: Install systemd unit file
+  register: _service_unit_written
   ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
   become: true
   vars:
@@ -292,34 +324,28 @@
     group: "{{ 'root' if _system_scope else komodo_group }}"
     mode: "0644"
 
-- name: Reload systemd
-  become: true
-  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists and komodo_service_scope == 'user' }}" # noqa ignore-errors
-  become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
-  environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-  ansible.builtin.systemd:
-    daemon_reload: true
-    scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+- name: Determine restart requirement
+  ansible.builtin.set_fact:
+    _restart_required: >-
+      {{
+        (_periphery_binary_needs_update | bool) or
+        (_config_file_written.changed | bool) or
+        (_service_unit_written.changed | bool) or
+        ((_core_pub_keys_written | default({})).changed | default(false) | bool) or
+        ((_periphery_priv_key_written | default({})).changed | default(false) | bool)
+      }}
 
-- name: Enable periphery
+- name: Ensure periphery service is running
   become: true
-  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
   become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
   environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
+  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
   ansible.builtin.systemd:
     name: periphery
     enabled: true
+    state: "{{ _restart_required | ternary('restarted', 'started') }}"
     scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
-
-- name: Start periphery
-  become: true
-  ignore_errors: "{{ ansible_check_mode and not komodo_user_exists }}" # noqa ignore-errors
-  become_user: "{{ systemd_ctx[komodo_service_scope].become_user }}"
-  environment: "{{ systemd_ctx[komodo_service_scope].environment | default({}) }}"
-  ansible.builtin.systemd:
-    name: periphery
-    state: started
-    scope: "{{ systemd_ctx[komodo_service_scope].scope }}"
+    daemon_reload: "{{ _service_unit_written.changed | default(false) }}"
 
 - name: Komodo server management tasks
   ansible.builtin.include_tasks: manage_server.yml
