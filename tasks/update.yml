@@ -108,7 +108,7 @@
       {{
         (_current_binary_state.stdout | split | last | regex_replace('^v', ''))
         if (
-          _current_binary_state.rc == 0 and 
+          _current_binary_state.rc == 0 and
           _current_binary_state.stdout | default('') | length > 0
         )
         else ''
