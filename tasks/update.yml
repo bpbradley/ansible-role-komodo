@@ -104,19 +104,23 @@
 
 - name: Parse installed version
   ansible.builtin.set_fact:
-    _installed_version: "{{ _current_binary_state.stdout | default('') | split | last | regex_replace('^v', '') }}"
+    _installed_version: >-
+      {{
+        (_current_binary_state.stdout | split | last | regex_replace('^v', ''))
+        if (
+          _current_binary_state.rc == 0 and 
+          _current_binary_state.stdout | default('') | length > 0
+        )
+        else ''
+      }}
 
 - name: Display version information
   ansible.builtin.debug:
-    msg: "Current: {{ _installed_version if _current_binary_state.rc == 0 else 'Not Installed' }} | Target: {{ _komodo_version }}"
+    msg: "Current: {{ _installed_version if _installed_version | length > 0 else 'Unknown' }} | Target: {{ _komodo_version }}"
 
 - name: Determine if binary update is required
   ansible.builtin.set_fact:
-    _periphery_binary_needs_update: >-
-      {{
-        _current_binary_state.rc != 0 or
-        _installed_version != _komodo_version
-      }}
+    _periphery_binary_needs_update: "{{ _installed_version != _komodo_version }}"
 
 - name: Select Komodo binary
   vars:
