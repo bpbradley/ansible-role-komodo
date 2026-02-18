@@ -98,6 +98,7 @@
 - name: Check currently installed binary version
   ansible.builtin.command: "{{ komodo_bin_path }} --version"
   register: _current_binary_state
+  become: true
   failed_when: false
   changed_when: false
   check_mode: false
