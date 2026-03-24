@@ -176,3 +176,8 @@ server_address: "" # Leave blank to try and autodetect
 komodo_bin: ""
 # Download settings. GitHub should be used unless you are using a dev build not available on github yet.
 komodo_download_source: "github"
+
+# Host to delegate Komodo Core API calls to. Needed for version checks and server management.
+# By default, localhost is used under the assumption it can reach the Komodo Core server.
+# Override this if a different host in your inventory has network access to Core.
+komodo_api_delegate_to: "localhost"

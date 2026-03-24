@@ -16,7 +16,7 @@
           failed_when: false
           changed_when: false
           check_mode: false
-          delegate_to: localhost
+          delegate_to: "{{ komodo_api_delegate_to }}"
           become: false
           run_once: true
           ansible.builtin.uri:
@@ -31,7 +31,7 @@
           when: (_core_version.status | default(0)) != 200
           changed_when: false
           check_mode: false
-          delegate_to: localhost
+          delegate_to: "{{ komodo_api_delegate_to }}"
           become: false
           run_once: true
           ansible.builtin.uri:
@@ -69,7 +69,7 @@
         - name: Query GitHub for the latest Komodo release
           check_mode: false
           changed_when: false
-          delegate_to: localhost
+          delegate_to: "{{ komodo_api_delegate_to }}"
           become: false
           run_once: true
           ansible.builtin.uri:

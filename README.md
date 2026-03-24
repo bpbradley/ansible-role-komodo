@@ -256,6 +256,7 @@ Some additional variables to tweak settings or override default behavior.
 | **komodo_legacy_compose_cli**                     | `false`                                         | Whether stack actions should use `docker-compose` instead of `docker compose`                                   |
 | **komodo_include_disk_mounts**                    | `[]`                                            | Optional. Only include mounts at specific paths in the disk report i.e. `["/mnt/include/1", "/mnt/include/2"]`  |
 | **komodo_exclude_disk_mounts**                    | `[]`                                            | Optional. Don't include these mounts in the disk report. i.e. `["/mnt/exclude/1", "/mnt/exclude/2"]`            |
+| **komodo_api_delegate_to**                        | `localhost`                                     | Sets the host (from ansible inventory) which API calls/version checks delegate to. Must be able to reach core   |
 
 ### Inbound vs Outbound Connections
 

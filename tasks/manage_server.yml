@@ -69,7 +69,7 @@
             ~ '://' ~ detected_advertise_ip ~ ':' ~ komodo_periphery_port }}
 
 - name: Manage Server creation via Komodo Core API
-  delegate_to: localhost
+  delegate_to: "{{ komodo_api_delegate_to }}"
   become: false
   block:
     - name: Check for existing server on Komodo Core
