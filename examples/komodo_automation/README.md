@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> This example requires komodo core and periphery to be updated to  v1.19.2 or higher.
+> This example requires komodo core and periphery to be updated to  v2.0.0 or higher.
 > You should use the deployment role in a more conventional manner first to get updated
 > to at least that version before continuing
 
@@ -10,20 +10,22 @@ ansible execution image provided by this role to have komodo update its own peri
 
 The following guide will walk you through the steps, and the provided inventory file annotates a lot
 of available functionality so you understand how you may need to adjust it to your own environment.
-The example intentionally uses as many features as possible to be exhaustive, but a simple inventory works just fine too.
+The example will strictly use outbound mode for servers, which provides the best security by default
+and allows for robust automation without the need of API keys. However, any configuration will work here,
+modify as needed.
 
 ## Prerequisites
 
 - Working Komodo Core installation
 - Basic understanding of Ansible and Docker
-- Komodo core and at least one periphery server updated to v1.19.2+
+- Komodo core and at least one periphery server updated to v2.0.0+
 
 ## Step 0: Familiarize Yourself
 
 In case anything goes wrong, it is wise that you know
 how to deploy periphery using this role in a more typical
 manner first, from a proper ansible host. This way, if something goes wrong,
-you can very quickly remedy it with a redeploy from your working 
+you can very quickly remedy it with a redeploy from your working
 environment. Trying to debug issues with ansible-in-docker is not ideal. This should be done only once you have a working setup and want to add full automation.
 
 ## Step 1: Create the komodo-ee stack
@@ -40,7 +42,7 @@ environment. Trying to debug issues with ansible-in-docker is not ideal. This sh
 
 services:
   ansible:
-    image: ghcr.io/bpbradley/ansible/komodo-ee:v1.3 # or latest
+    image: ghcr.io/bpbradley/ansible/komodo-ee:v2.0 # or latest
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
@@ -51,8 +53,7 @@ services:
     command: "sleep 3600" # this keeps the container running by default, which will help with testing so you can exec into it temporarily
 ```
 
-Here, I am providing a default command of `sleep 3600` so that we can, if needed, deploy the container and exec into it for testing. This will allow
-us to do all steps in this guide from *within komodo* if we choose to.
+Here, I am providing a default command of `sleep 3600` so that we can, if needed, deploy the container and exec into it for testing. This will allow us to do all steps in this guide from *within komodo* if we choose to.
 
 ### Configuration Notes
 
@@ -69,25 +70,9 @@ us to do all steps in this guide from *within komodo* if we choose to.
    - ~/.ssh/known_hosts:/etc/ssh/ssh_known_hosts:ro
    ```
 
-## Step 2: Generate API Credentials
+### Optional: Encrypt Credentials with Ansible Vault
 
-This example uses server management, which require API credentials. 
-
-> [!NOTE]
-> You don't expressly need API credentials
-> and so you can just skip these sections if you don't want server management. Without server management, you just need to manually create / update servers as needed.
-
-1. Navigate to **Settings > Profile > New Api Key +**
-2. Take note of the API Key and API secret
-
-```text
-Example API Key: K-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-Example API Secret: S-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
-
-### Encrypt Credentials with Ansible Vault
-
-For security, encrypt these variables using Ansible Vault. There are countless ways to do this, but I am going to try to achieve *everything* in this guide from within komodo. So Deploy the stack we created earlier. **Stacks > komodo-ee > Deploy**
+For security, encrypt any sensitive credentials Ansible Vault. There are countless ways to do this, but I am going to try to achieve *everything* in this guide from within komodo. So Deploy the stack we created earlier. **Stacks > komodo-ee > Deploy**
 
 Because of the `sleep 3600` command used by default in the compose file, the execution environment will stay alive (for an hour), so we can shell into the container (in komodo), and use ansible tools.
 
@@ -98,20 +83,16 @@ Open a shell in komodo-ee by Navigating to **Stacks > komodo-ee > Services Tab >
 head /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-64} > /tmp/.vaultpass
 # Use env variable to inform ansible of vault password
 export ANSIBLE_VAULT_PASSWORD_FILE=/tmp/.vaultpass
-# Encrypt the API credentials
-ansible-vault encrypt_string "K-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" --name "komodo_core_api_key"
-ansible-vault encrypt_string "S-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" --name "komodo_core_api_secret"
-# The password needed to become the sudo user with your ansible_user
-ansible-vault encrypt_string "S-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" --name "ansible_become_pass"
-# Remember to encrypt any other variables you may need here
+# Encrypt any sensitive material in your inventory
+ansible-vault encrypt_string "XXXXXXXXX" --name "ansible_become_pass"
 ```
 
 Example output:
 
 ```sh
-bash-5.2$ ansible-vault encrypt_string "K-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" --name "komodo_core_api_key"
+ansible-vault encrypt_string "XXXXXXXXX" --name "ansible_become_pass"
 Encryption successful
-komodo_core_api_key: !vault |
+ansible_become_pass: !vault |
           $ANSIBLE_VAULT;1.1;AES256
           36623436616338363562373236366237333166303362373333613963393132626538303064616435
           3131666462663431386538643735376136613231646537340a303634383563613061633339633030
@@ -119,16 +100,6 @@ komodo_core_api_key: !vault |
           3036323332626666350a663537653434646236616532386463613432386539343334626638633431
           66623464326230653033336331616661663732313165626463663535316433666363313362366130
           3435323862663331666666616163653966383232623961616337
-bash-5.2$ ansible-vault encrypt_string "S-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" --name "komodo_core_api_secret"
-Encryption successful
-komodo_core_api_secret: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          64323763383431393564393563353731646437313632396537646462313362303237623033373962
-          6162346537663130616530346134303663393138323464640a646232613839303565313735373137
-          35636266313039646335666138333539626165623233326564626263656339376336663133616630
-          3936303933643137380a613662376662376138343233373137613363343135376332653435336638
-          38643634646331336462366432626238653233383264393531303466353438383034313365656435
-          6539613361393130653639633637303565633265396138353335
 ```
 
 Take note of these variables, and any other variables you need to similarly encrypt.
@@ -150,12 +121,11 @@ For this guide, we will store the vault password as a komodo secret. **Komodo > 
 Update `ansible/inventory/komodo.yml` with the encrypted variables created above and configure the core URL:
 
 > [!IMPORTANT]
-> Review the example inventory and read the annotations. 
-> In order for all of the automations to work as designed in all configurations, 
+> Review the example inventory and read the annotations.
+> In order for all of the automations to work as designed in all configurations,
 > you should ideally name all of your inventory host names exactly the same as they are in komodo.
 > i.e. if you have a server in komodo with name `test_server` then you should make that servers inventory name `test_server`.
-> This isn't generally necessary, as you can always set an explicit `server_name` variable,
-> but in this case the automation relies on being "aware" of your inventory
+> This isn't generally necessary, but in this case the automation relies on being "aware" of your inventory
 > because it will attempt to only update systems that are out of date, rather than all of them.
 
 ### ansible/inventory/komodo.yml
@@ -175,7 +145,7 @@ all:
     test_server:
       ansible_host: 10.1.10.6
   vars:
-    ansible_user: actual_user_to_run_playbook_as #i.e. bbradley
+    ansible_user: actual_user_to_run_playbook_as
     # This role needs elevated privileges for some tasks.
     # remember to encrypt ansible_become_pass with vault.
     ansible_become_pass: !vault |
@@ -185,45 +155,24 @@ all:
             64613231323433373637313462633863613732653136366462313134393938623136326633346166
             3834333462333162310a313037306336613061313733363862633437376133316234326431633131
             35386565333538623231643433396334323132616438353839663534373030393266
-    # You will need to mount any ssh keys into the container, 
+    # You will need to mount any ssh keys into the container,
     # with the correct permissions for the user the container is running as
     ansible_ssh_private_key_file: /root/.ssh/id_ed25519 # i.e. (/path/to/ssh/key/in/container)
+    # Because all nodes are outbound, we can define the core address as shared.
+    komodo_core_address: "wss://komodo.example.com"
+    komodo_server_enabled: false
   children:
     komodo:
       vars:
-        # This example uses server management, which requires an API key and secret.
-        # You do not -need- to use server management though, so long as your servers already
-        # exist on system.
-        komodo_core_url: "https://komodo.example.com"
-        komodo_core_api_key: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          36623436616338363562373236366237333166303362373333613963393132626538303064616435
-          3131666462663431386538643735376136613231646537340a303634383563613061633339633030
-          30663939353566616464633933663636346262656564653665333032653666396264316131306539
-          3036323332626666350a663537653434646236616532386463613432386539343334626638633431
-          66623464326230653033336331616661663732313165626463663535316433666363313362366130
-          3435323862663331666666616163653966383232623961616337
-        komodo_core_api_secret: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          64323763383431393564393563353731646437313632396537646462313362303237623033373962
-          6162346537663130616530346134303663393138323464640a646232613839303565313735373137
-          35636266313039646335666138333539626165623233326564626263656339376336663133616630
-          3936303933643137380a613662376662376138343233373137613363343135376332653435336638
-          38643634646331336462366432626238653233383264393531303466353438383034313365656435
-          6539613361393130653639633637303565633265396138353335
-        enable_server_management: true
-        # We will generate a random passkey every time we run the playbook.
-        # This effectively will rotate the passkey on every run.
-        generate_server_passkey: true
         # I like to "inform" each server what UID/GID it is running as
         # which is useful when running containers as the komodo user.
         # The role will also populate the UID/GID env variables in the
         # systemd service file for you, but this is just a convenience.
         komodo_agent_secrets:
-        - name: "KOMODO_UID"
-          value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
-        - name: "KOMODO_GID"
-          value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
+          - name: "KOMODO_UID"
+            value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
+          - name: "KOMODO_GID"
+            value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
       children:
         # It isn't necessary to split the inventory up into core / periphery,
         # but it is useful for organization and I personally have other roles
@@ -231,38 +180,33 @@ all:
         core:
           hosts:
             internal_server:
-              # We can connect directly to the docker container IP if we bind
-              # if we bind to the docker0 interface on the host (or 0.0.0.0, etc)
-              komodo_allowed_ips:
-                - "172.20.0.101"
-              # The other servers will automatically determine their server address,
-              # by detecting their route to komodo core based on the komodo_core_url.
-              # This may not always work though, and so we can manually specify it like so.
-              server_address: https://host.docker.internal:{{ komodo_periphery_port }}
-              komodo_bind_ip: "{{ ansible_docker0.ipv4.address}}"
+              # Maybe you want to reach core with a different address on some servers.
+              # You can override the group var here.
+              komodo_core_address: "wss://komodo.example.com" 
         periphery:
           hosts:
             external_server:
-              komodo_allowed_ips:
-                - "10.1.10.4"
               # Add any additional secrets you want here, This will override
               # the group vars.
               komodo_agent_secrets:
-              - name: "KOMODO_UID"
-                value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
-              - name: "KOMODO_GID"
-                value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
-              - name: "SUPER_SECRET"
-                value: !vault |
-                  $ANSIBLE_VAULT;1.1;AES256
-                  66386439653762316464626437653766643665373063...
+                - name: "KOMODO_UID"
+                  value: "{{ ansible_facts.getent_passwd[komodo_user].1 }}"
+                - name: "KOMODO_GID"
+                  value: "{{ ansible_facts.getent_passwd[komodo_user].2 }}"
+                - name: "SUPER_SECRET"
+                  value: !vault |
+                    $ANSIBLE_VAULT;1.1;AES256
+                    66386439653762316464626437653766643665373063...
             test_server:
-              # not necessary, as the above server is doing the exact same thing
-              # more explicitly, but you can also dynamically set the allowed IP
-              # to the `internal_server` IP automatically like this
-              komodo_allowed_ips:
-                - "{{ hostvars['internal_server'].ansible_host }}"
-              komodo_bind_ip: "{{ ansible_host }}"
+              # Not usually needed, but maybe you need to manually set a specific
+              # private key for this server.
+              komodo_private_key: !vault |
+                $ANSIBLE_VAULT;1.1;AES256
+                62336466363161396537316566366466323266663536...
+              # This would allow the role to overwrite existing key files
+              # on this server, if they already exist.
+              allow_overwrite_key_files: true
+
 ```
 
 ## Step 5: Create a playbook
@@ -285,12 +229,13 @@ We are primarily controlling execution with inventory settings and Action argume
         seconds: "{{ pause_after_seconds | default(10) }}"
       run_once: true
       delegate_to: localhost
+      become: false
       when: pause_after | default(false) | bool
 ```
 
 ## Step 5: Automate with Actions
 
-With the infrastructure in place, we can handle complex automations using the komodo API, which we can leverage to make sure that periphery always stays up to date. Here is the action script and arguments to copy in **Actions > New Action > DeployPeriphery** 
+With the infrastructure in place, we can handle complex automations using the komodo API, which we can leverage to make sure that periphery always stays up to date. Here is the action script and arguments to copy in **Actions > New Action > DeployPeriphery**
 
 This script and the associated action arguments are fairly complex, so that as many use cases
 as possible can be captured with this setup. Feel free to simplify it (potentially dramatically) to meet your specific needs.
@@ -363,7 +308,7 @@ function recapHasFailures(recap: string): boolean {
 async function waitForServerUpdate(server: Server, timeoutMs = 40000, intervalMs = 1000): Promise<boolean> {
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
-    const { version } = (await komodo.read("GetPeripheryVersion", { server: server.id })) as Types.GetPeripheryVersionResponse;
+    const { version } = (await komodo.read("GetPeripheryInformation", { server: id })) as Types.GetPeripheryInformationResponse;
     if (version === server.version) { console.log(`${server.name} Updated!`); return true; }
     console.debug(`Version: ${version}`)
     await sleep(intervalMs);
@@ -380,16 +325,14 @@ async function followContainerLogs(server: Server, containerId: string): Promise
     let recapSeen = false;
     let recapText: string | null = null;
     try {
-      await komodo.write("CreateTerminal", { 
-        server: server.name, 
-        name: term, 
-        command: "/bin/bash", 
-        recreate: Types.TerminalRecreateMode.Always 
-      });
-      await komodo.execute_terminal({ 
+      await komodo.execute_server_terminal({ 
         server: server.name, 
         terminal: term, 
-        command: `${streamCmd}` 
+        command: `${streamCmd}`,
+        init: {
+          command: "bash",
+          recreate: Types.TerminalRecreateMode.Always
+        }
         },{
           onLine: (line) => {
             if (!recapSeen) {
@@ -452,7 +395,7 @@ async function update() {
   const allServers: Server[] = await Promise.all(
     base.map(async ({ id, name }) => {
       try {
-        const { version } = (await komodo.read("GetPeripheryVersion", { server: id })) as Types.GetPeripheryVersionResponse;
+        const { version } = (await komodo.read("GetPeripheryInformation", { server: id })) as Types.GetPeripheryInformationResponse;
         return { id, name, version };
       } catch (err) {
         return { id, name, version: "ERROR", err: err as Error };
@@ -552,7 +495,7 @@ async function update() {
     "-i", ARGS.INVENTORY,
     "-e", `komodo_action=${ARGS.KOMODO_ACTION}`,
     "-e", `komodo_version=v${requiredVersion}`,
-    "-e", "pause_after=true",
+    "-e", "pause_after=true"
   ];
   if (limitPattern) command.push("-l", limitPattern);
   if (DRY_RUN) command.push("--check", "--diff");
@@ -608,7 +551,6 @@ async function update() {
 }
 
 await update();
-
 ```
 
 ### Testing
@@ -624,9 +566,9 @@ It is now time to see if the update is working. set `"LIMIT_SERVERS": []` and **
 
 > [!NOTE]
 > Capturing logs from periphery here is surprisingly delicate. The
-> reason being that periphery goes offline during the update, and so we lose 
-> connection. The run command runs detached, so the update will happen 
-> regardless, but in order to capture logs we need to open a terminal and 
+> reason being that periphery goes offline during the update, and so we lose
+> connection. The run command runs detached, so the update will happen
+> regardless, but in order to capture logs we need to open a terminal and
 > try to follow the logs before the run completes. I did my best to handle this
 > without getting too hacky, but it may occasionally lose the output logs. It is
 > working well in my testing though.

@@ -8,33 +8,14 @@
 - name: Build Komodo user context
   ansible.builtin.import_tasks: _user_ctx.yml
 
-- name: Setup Komodo User
-  ansible.builtin.include_tasks: setup_user.yml
-  when: komodo_action in ["install","update"]
-
-- name: Create Ansible temp directory for komodo user
-  become: true
-  ansible.builtin.file:
-    path: "{{ komodo_home }}/.ansible/tmp"
-    state: directory
-    owner: "{{ komodo_user }}"
-    group: "{{ komodo_group }}"
-    mode: "0700"
-  when: komodo_user_exists | bool
-
-- name: Update Komodo Periphery Agent
+- name: Update Komodo Periphery
   ansible.builtin.include_tasks: update.yml
   when: komodo_action in ["install","update"]
-
-- name: Komodo server update tasks
-  ansible.builtin.include_tasks: manage_server.yml
-  when:
-    - komodo_action in ["install","update"]
-    - enable_server_management | bool
 
 - name: Periphery uninstall tasks
   ansible.builtin.include_tasks: uninstall.yml
   when: komodo_action == "uninstall"
 
-- name: Compatibility Checks
-  ansible.builtin.import_tasks: _compat.yml
+- name: Compatibility checks
+  ansible.builtin.include_tasks: _compat.yml
+  when: allow_komodo_deprecation_checks | default(true) | bool

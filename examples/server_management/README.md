@@ -1,12 +1,18 @@
 # Server Management / Advanced Authentication
 
+> [!WARNING]
+> This example is provided for users prior to Komodo V2.0.0.
+> It revolves around adding more robust credential management and separation
+> to each periphery deployment, via API. This is **no longer necessary** and
+> users needing key rotation and per-periphery credentials should migrate
+> to Komodo 2.0.0 where this is **default behavior**
+
 This example is fairly exhaustive on all the things you can do.
 Here, periphery is deployed as normal, but when server management is enabled,
 the role will automatically create (or update if already existing)
 the server in Komodo Core automatically, through the Komodo API.
 
-It extends similar concepts from the `examples/auth` example,
-but also demonstrates some advanced authentication features that
+It demonstrates some advanced authentication features that
 are only possible (right now) via API with Komodo, such as
 specifying *per-server* passkeys, and being able to randomly
 generate and rotate server passkeys on every update/install.

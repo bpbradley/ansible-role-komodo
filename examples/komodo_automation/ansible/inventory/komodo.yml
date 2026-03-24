@@ -26,33 +26,12 @@ all:
     # You will need to mount any ssh keys into the container,
     # with the correct permissions for the user the container is running as
     ansible_ssh_private_key_file: /root/.ssh/id_ed25519 # i.e. (/path/to/ssh/key/in/container)
+    # Because all nodes are outbound, we can define the core address as shared.
+    komodo_core_address: "wss://komodo.example.com"
+    komodo_server_enabled: false
   children:
     komodo:
       vars:
-        # This example uses server management, which requires an API key and secret.
-        # You do not -need- to use server management though, so long as your servers already
-        # exist on system.
-        komodo_core_url: "https://komodo.example.com"
-        komodo_core_api_key: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          36623436616338363562373236366237333166303362373333613963393132626538303064616435
-          3131666462663431386538643735376136613231646537340a303634383563613061633339633030
-          30663939353566616464633933663636346262656564653665333032653666396264316131306539
-          3036323332626666350a663537653434646236616532386463613432386539343334626638633431
-          66623464326230653033336331616661663732313165626463663535316433666363313362366130
-          3435323862663331666666616163653966383232623961616337
-        komodo_core_api_secret: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          64323763383431393564393563353731646437313632396537646462313362303237623033373962
-          6162346537663130616530346134303663393138323464640a646232613839303565313735373137
-          35636266313039646335666138333539626165623233326564626263656339376336663133616630
-          3936303933643137380a613662376662376138343233373137613363343135376332653435336638
-          38643634646331336462366432626238653233383264393531303466353438383034313365656435
-          6539613361393130653639633637303565633265396138353335
-        enable_server_management: true
-        # We will generate a random passkey every time we run the playbook.
-        # This effectively will rotate the passkey on every run.
-        generate_server_passkey: true
         # I like to "inform" each server what UID/GID it is running as
         # which is useful when running containers as the komodo user.
         # The role will also populate the UID/GID env variables in the
@@ -69,20 +48,12 @@ all:
         core:
           hosts:
             internal_server:
-              # We can connect directly to the docker container IP if we bind
-              # if we bind to the docker0 interface on the host (or 0.0.0.0, etc)
-              komodo_allowed_ips:
-                - "172.20.0.101"
-              # The other servers will automatically determine their server address,
-              # by detecting their route to komodo core based on the komodo_core_url.
-              # This may not always work though, and so we can manually specify it like so.
-              server_address: https://host.docker.internal:{{ komodo_periphery_port }}
-              komodo_bind_ip: "{{ ansible_docker0.ipv4.address}}"
+              # Maybe you want to reach core with a different address on some servers.
+              # You can override the group var here.
+              komodo_core_address: "wss://komodo.example.com"
         periphery:
           hosts:
             external_server:
-              komodo_allowed_ips:
-                - "10.1.10.4"
               # Add any additional secrets you want here, This will override
               # the group vars.
               komodo_agent_secrets:
@@ -95,9 +66,11 @@ all:
                     $ANSIBLE_VAULT;1.1;AES256
                     66386439653762316464626437653766643665373063...
             test_server:
-              # not necessary, as the above server is doing the exact same thing
-              # more explicitly, but you can also dynamically set the allowed IP
-              # to the `internal_server` IP automatically like this
-              komodo_allowed_ips:
-                - "{{ hostvars['internal_server'].ansible_host }}"
-              komodo_bind_ip: "{{ ansible_host }}"
+              # Not usually needed, but maybe you need to manually set a specific
+              # private key for this server.
+              komodo_private_key: !vault |
+                $ANSIBLE_VAULT;1.1;AES256
+                62336466363161396537316566366466323266663536...
+              # This would allow the role to overwrite existing key files
+              # on this server, if they already exist.
+              allow_overwrite_key_files: true
