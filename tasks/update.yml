@@ -193,6 +193,7 @@
           when: (_normalized_core_keys | length) > 0
           block:
             - name: Write Core public key files
+              become: true
               register: _core_pub_keys_written
               no_log: true
               ansible.builtin.template:
@@ -231,6 +232,7 @@
             - not (komodo_private_key | string | trim) is match('^file:')
           block:
             - name: Write private key file
+              become: true
               no_log: true
               register: _periphery_priv_key_written
               ansible.builtin.template:
