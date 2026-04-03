@@ -2,12 +2,15 @@
 
 services:
   ansible:
-    image: ghcr.io/bpbradley/ansible/komodo-ee:v2.0 # or latest
+    image: ghcr.io/bpbradley/ansible/komodo-ee
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
       - ./ansible:/ansible # Mount ansible files into container
+      - update_logs:/var/log/ansible # Mount a volume for ansible logs
       - /path/on/host/to/.ssh/ansible:/root/.ssh/id_ed25519:ro # Make sure the user you run the container has read access to the key
     environment:
       ANSIBLE_HOST_KEY_CHECKING: ${ANSIBLE_HOST_KEY_CHECKING:-false} # Necessary for automation, unless you manage known_hosts and map it into container
     command: "sleep 3600" # this keeps the container running by default, which will help with testing so you can exec into it temporarily
+volumes:
+  update_logs:

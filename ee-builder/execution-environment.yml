@@ -40,3 +40,4 @@ additional_build_steps:
     COPY --from=builder /opt/builder/bin/entrypoint /usr/bin/entrypoint
     RUN chmod 555 /etc/ansible/.vault_pass.sh  && \
         chmod 555 /usr/local/bin/entrypoint.sh
+    RUN mkdir -p /var/log/ansible && chmod 777 /var/log/ansible

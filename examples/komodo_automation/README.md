@@ -3,6 +3,12 @@
 > You should use the deployment role in a more conventional manner first to get updated
 > to at least that version before continuing
 
+> [!NOTE]
+> If updating from prior to v2, make sure to update action script and compose.yaml and playbooks.
+> I was having issues with following the logs reliably on v2, and so changed to a different method.
+> Now you must mount a persistent logs volume, and ansible will log the play there in detached mode,
+> to be read from after the update.
+
 # Automating Deployment with Komodo and Docker
 
 This provides an exhaustive example for how to use ansible-in-docker using an
@@ -42,15 +48,18 @@ environment. Trying to debug issues with ansible-in-docker is not ideal. This sh
 
 services:
   ansible:
-    image: ghcr.io/bpbradley/ansible/komodo-ee:v2.0 # or latest
+    image: ghcr.io/bpbradley/ansible/komodo-ee
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
       - ./ansible:/ansible # Mount ansible files into container
+      - update_logs:/var/log/ansible # Mount a volume for ansible logs. Otherwise play recap can't be found
       - /path/on/host/to/.ssh/ansible:/root/.ssh/id_ed25519:ro # Make sure the user you run the container has read access to the key
     environment:
       ANSIBLE_HOST_KEY_CHECKING: ${ANSIBLE_HOST_KEY_CHECKING:-false} # Necessary for automation, unless you manage known_hosts and map it into container
     command: "sleep 3600" # this keeps the container running by default, which will help with testing so you can exec into it temporarily
+volumes:
+  update_logs:
 ```
 
 Here, I am providing a default command of `sleep 3600` so that we can, if needed, deploy the container and exec into it for testing. This will allow us to do all steps in this guide from *within komodo* if we choose to.
@@ -221,16 +230,6 @@ We are primarily controlling execution with inventory settings and Action argume
   hosts: komodo
   roles:
     - role: bpbradley.komodo
-  # This task is simply to keep the container alive for a few seconds
-  # to make it easier to capture logs.
-  post_tasks:
-    - name: Pause after run (default 10s)
-      ansible.builtin.pause:
-        seconds: "{{ pause_after_seconds | default(10) }}"
-      run_once: true
-      delegate_to: localhost
-      become: false
-      when: pause_after | default(false) | bool
 ```
 
 ## Step 5: Automate with Actions
@@ -274,7 +273,6 @@ The general concept of the script is
 type Server = { id: string; name: string; version: string; err?: Error };
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
-function parseContainerId(s: string): string | null { const m = s.match(/\b([0-9a-f]{12,64})\b/i); return m ? m[1] : null; }
 function normalizeVersion(s: string | undefined | null): string { return String(s ?? "").trim().replace(/^v/i, ""); }
 
 function getErrorMessage(err: unknown): string {
@@ -324,56 +322,6 @@ async function waitForServerUpdate(server: Server, timeoutMs = 40000, intervalMs
   return false;
 }
 
-async function followContainerLogs(server: Server, containerId: string): Promise<string> {
-  const term = `periphery-follow`;
-  const streamCmd = `docker logs -f ${containerId}`;
-
-  const getRecap = async (): Promise<string | null> => {
-    let recapSeen = false;
-    let recapText: string | null = null;
-    try {
-      await komodo.execute_server_terminal({ 
-        server: server.name, 
-        terminal: term, 
-        command: `${streamCmd}`,
-        init: {
-          command: "bash",
-          recreate: Types.TerminalRecreateMode.Always
-        }
-        },{
-          onLine: (line) => {
-            if (!recapSeen) {
-              const i = line.indexOf("PLAY RECAP");
-              if (i >= 0) {
-                recapSeen = true; 
-                const first = line.slice(i); 
-                recapText = first;
-                console.log(first);
-              }
-            } else {
-              console.log(line);
-              if (recapText) recapText += `\n${line}`;
-            }
-          },
-          onFinish: () => {},
-        }
-      );
-    } catch {}
-    return recapSeen ? recapText : null;
-  };
-
-  const first = await getRecap();
-  if (first) return first;
-  // Server likely dropped out because it is currently updating. 
-  // Wait a few seconds, then try to see if it comes back up, then try again
-  await sleep(15000);
-  const ok = await waitForServerUpdate(server);
-  if (!ok) throw new Error(`Timeout waiting for ${server.name} to report version ${server.version}`);
-  const second = await getRecap();
-  if (!second) throw new Error(`No Ansible recap captured from ${server.name}`);
-  return second;
-}
-
 async function resolveRequiredVersion(): Promise<string> {
   const req = String(ARGS.KOMODO_VERSION || "");
   if (req.toLowerCase() === "core") {
@@ -394,8 +342,8 @@ async function update() {
   const LIMIT_SERVERS = parseLimitServers(ARGS.LIMIT_SERVERS);
   const IGNORE_SERVERS = parseLimitServers(ARGS.IGNORE_SERVERS);
 
-  console.log("Waiting for periphery agents to connect...");
-  await sleep(10000);
+  console.log("Waiting for periphery...");
+  await sleep(15000);
 
   const requiredVersion = await resolveRequiredVersion();
   if (!requiredVersion) throw new Error("Missing required version");
@@ -414,9 +362,7 @@ async function update() {
   );
 
   const ignoreSet = new Set(IGNORE_SERVERS);
-  const unknownIgnores = IGNORE_SERVERS.filter(
-    v => !allServers.some(s => s.name === v || s.id === v)
-  );
+  const unknownIgnores = IGNORE_SERVERS.filter(v => !allServers.some(s => s.name === v || s.id === v));
   let servers = allServers.filter(s => !ignoreSet.has(s.name) && !ignoreSet.has(s.id));
 
   if (IGNORE_SERVERS.length) {
@@ -455,23 +401,9 @@ async function update() {
     const inScope = targetIds.has(s.id);
 
     let msg: string;
-    if (s.err) {
-      msg = `❌  Error: ${(s.err as Error).message}`;
-    } else if (inScope) {
-      if (FORCE && cur === requiredVersion) {
-        msg = `🔁 forcing update (currently ${cur})`;
-      } else if (cur !== requiredVersion) {
-        msg = `🎯 target: ${cur} → ${requiredVersion}`;
-      } else {
-        msg = `✅ up to date${FORCE ? " (forcing update)" : ""}`;
-      }
-    } else {
-      if (cur !== requiredVersion) {
-        msg = `⏭️  not targeted (current ${cur}, required ${requiredVersion})`;
-      } else {
-        msg = `✅ up to date`;
-      }
-    }
+    if (s.err) msg = `❌  Error: ${(s.err as Error).message}`;
+    else if (inScope) msg = (FORCE && cur === requiredVersion) ? `🔁 forcing update (currently ${cur})` : cur !== requiredVersion ? `🎯 target: ${cur} → ${requiredVersion}` : `✅ up to date${FORCE ? " (forcing update)" : ""}`;
+    else msg = cur !== requiredVersion ? `⏭️  not targeted (current ${cur}, required ${requiredVersion})` : `✅ up to date`;
 
     console.log(`  - ${label} : ${msg}`);
   });
@@ -487,28 +419,26 @@ async function update() {
   const includesStackServer = !!stackServer && candidates.some(s => s.id === stackServer.id);
 
   const DETACH = DRY_RUN ? false : includesStackServer;
-
-  const allTargeted = candidates.length === servers.filter(s => !s.err).length;
   const allManaged = servers.filter(s => !s.err);
-  let limitPattern: string | undefined;
-
-  if (LIMIT_SERVERS.length || IGNORE_SERVERS.length) {
-    limitPattern = candidates.map(s => s.name).join(",");
-  } else {
-    const allTargeted = candidates.length === allManaged.length;
-    limitPattern = allTargeted ? undefined : candidates.map(s => s.name).join(",");
-  }
+  const allTargeted = candidates.length === allManaged.length;
+  const limitPattern = (LIMIT_SERVERS.length || IGNORE_SERVERS.length || !allTargeted) ? candidates.map(s => s.name).join(",") : undefined;
   
   const command = [
-    "ansible-playbook",
-    ARGS.PLAYBOOK,
+    "ansible-playbook", ARGS.PLAYBOOK,
     "-i", ARGS.INVENTORY,
     "-e", `komodo_action=${ARGS.KOMODO_ACTION}`,
     "-e", `komodo_version=v${requiredVersion}`,
-    "-e", "pause_after=true"
   ];
   if (limitPattern) command.push("-l", limitPattern);
   if (DRY_RUN) command.push("--check", "--diff");
+
+  // Define persistent log path
+  const logFileName = `update-${Date.now()}.log`;
+  const containerLogPath = `/var/log/ansible/${logFileName}`;
+
+  const execEnv: Record<string, string> = { VAULT_PASS: "[[VAULT_PASS]]" };
+  // Only route logs to the file if we are running detached
+  if (DETACH) execEnv.ANSIBLE_LOG_PATH = containerLogPath;
 
   const result = (await komodo.execute_and_poll("RunStackService", {
     stack: ARGS.STACK_NAME,
@@ -517,7 +447,7 @@ async function update() {
     detach: DETACH,
     pull: true,
     no_deps: true,
-    env: { VAULT_PASS: "[[VAULT_PASS]]" },
+    env: execEnv,
   })) as Types.Update;
 
   const runLog = result.logs.find(l => l.stage === "Compose Run");
@@ -526,18 +456,43 @@ async function update() {
   let recapText: string | null = null;
 
   if (DETACH && stackServer) {
-    // Detached: stdout/stderr should contain the container id; follow its logs to get the recap
-    const cid = parseContainerId(`${runLog.stdout || ""}\n${runLog.stderr || ""}`);
-    if (!cid) throw new Error("Could not parse container id from output; unable to follow logs.");
-
-    console.log(`Following container logs (${cid}) on ${stackServer.name}…`);
-
-    // we expect this host to update to requiredVersion
+    console.log(`Update running detached in background on ${stackServer.name}...`);
     stackServer.version = requiredVersion;
 
-    recapText = await followContainerLogs(stackServer, cid);
+    console.log("Waiting for agent to restart and come back online...");
+    await sleep(15000); 
+    const ok = await waitForServerUpdate(stackServer);
+    if (!ok) throw new Error(`Timeout waiting for ${stackServer.name} to report version ${stackServer.version}`);
+
+    console.log(`Agent online. Waiting for playbook to finish...`);
+    await sleep(10000);
+
+    console.log(`Fetching run logs and cleaning up...`);
+    // Run a shell command to cat the file, then instantly delete it
+    const fetchResult = (await komodo.execute_and_poll("RunStackService", {
+      stack: ARGS.STACK_NAME,
+      service: ARGS.SERVICE_NAME,
+      command: ["sh", "-c", `cat ${containerLogPath} && rm -f ${containerLogPath}`],
+      detach: false,
+      pull: false,
+      no_deps: true,
+    })) as Types.Update;
+
+    const fetchLog = fetchResult.logs.find(l => l.stage === "Compose Run");
+    const output = `${fetchLog?.stdout || ""}\n${fetchLog?.stderr || ""}`;
+
+    if (output.includes("No such file")) {
+      throw new Error(`Log file missing. Permissions issue? Did you add a logs volume?`)
+    }
+
+    recapText = extractRecap(output);
+    if (!recapText) {
+      console.log("Raw fetched log:", output);
+      throw new Error("Log fetched successfully, but no PLAY RECAP was found inside it.");
+    }
+    console.log(recapText);
+
   } else {
-    // Non-detached: compose output should include the recap
     if (!runLog.success) {
       console.error(runLog.stdout);
       console.error(runLog.stderr);
@@ -561,6 +516,7 @@ async function update() {
 }
 
 await update();
+
 ```
 
 ### Testing
@@ -578,10 +534,9 @@ It is now time to see if the update is working. set `"LIMIT_SERVERS": []` and **
 > Capturing logs from periphery here is surprisingly delicate. The
 > reason being that periphery goes offline during the update, and so we lose
 > connection. The run command runs detached, so the update will happen
-> regardless, but in order to capture logs we need to open a terminal and
-> try to follow the logs before the run completes. I did my best to handle this
-> without getting too hacky, but it may occasionally lose the output logs. It is
-> working well in my testing though.
+> regardless, but in order to capture logs we log the play to a file,
+> then later reconnect and try to capture that file and cleanup.
+> This may not always work, and you may need to tweak some of the delays on your system.
 
 ## Final Touches
 
