@@ -277,6 +277,13 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 function parseContainerId(s: string): string | null { const m = s.match(/\b([0-9a-f]{12,64})\b/i); return m ? m[1] : null; }
 function normalizeVersion(s: string | undefined | null): string { return String(s ?? "").trim().replace(/^v/i, ""); }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) return String(err.message);
+  return JSON.stringify(err) || "Unknown error occurred";
+}
+
 function truthy(v: unknown): boolean {
   if (typeof v === "boolean") return v;
   const s = String(v ?? "").trim().toLowerCase();
@@ -308,7 +315,7 @@ function recapHasFailures(recap: string): boolean {
 async function waitForServerUpdate(server: Server, timeoutMs = 40000, intervalMs = 1000): Promise<boolean> {
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
-    const { version } = (await komodo.read("GetPeripheryInformation", { server: id })) as Types.GetPeripheryInformationResponse;
+    const { version } = (await komodo.read("GetPeripheryInformation", { server: server.id })) as Types.GetPeripheryInformationResponse;
     if (version === server.version) { console.log(`${server.name} Updated!`); return true; }
     console.debug(`Version: ${version}`)
     await sleep(intervalMs);
@@ -387,6 +394,9 @@ async function update() {
   const LIMIT_SERVERS = parseLimitServers(ARGS.LIMIT_SERVERS);
   const IGNORE_SERVERS = parseLimitServers(ARGS.IGNORE_SERVERS);
 
+  console.log("Waiting for periphery agents to connect...");
+  await sleep(10000);
+
   const requiredVersion = await resolveRequiredVersion();
   if (!requiredVersion) throw new Error("Missing required version");
 
@@ -398,7 +408,7 @@ async function update() {
         const { version } = (await komodo.read("GetPeripheryInformation", { server: id })) as Types.GetPeripheryInformationResponse;
         return { id, name, version };
       } catch (err) {
-        return { id, name, version: "ERROR", err: err as Error };
+        return { id, name, version: "ERROR", err: new Error(getErrorMessage(err)) };
       }
     })
   );
