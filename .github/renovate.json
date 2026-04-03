@@ -18,5 +18,12 @@
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "moghtech/komodo"
         }
+    ],
+    "packageRules": [
+        {
+            "matchManagers": ["github-actions"],
+            "matchDepNames": ["python"],
+            "allowedVersions": "<3.14"
+        }
     ]
 }
