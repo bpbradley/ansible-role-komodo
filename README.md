@@ -51,7 +51,7 @@ an [inbound connection](#inbound-connection) without authentication.
 
 | Variable                      | Default                             | Description                                                                                |
 | ----------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------ |
-| **komodo_version**            | `2.1.1`                             | Release tag, or `latest`/`core` for automatic versioning                                   |
+| **komodo_version**            | `2.1.2`                             | Release tag, or `latest`/`core` for automatic versioning                                   |
 | **komodo_core_http_address**  | Derived from `komodo_core_address`  | **Required when `komodo_version=core`.** ex. `https://komodo.example.com` or `http:IP:9120`|
 
 ## Connection Flow
