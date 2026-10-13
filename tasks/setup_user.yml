@@ -20,7 +20,7 @@
         home: "{{ komodo_home }}"
         uid: "{{ komodo_uid | default(omit) }}"
       when:
-        - not komodo_group_exists | bool
+        - not komodo_user_exists | bool
         - allow_create_komodo_user | bool
 
     - name: Refresh Komodo user context

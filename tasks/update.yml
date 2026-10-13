@@ -95,6 +95,12 @@
       ansible.builtin.debug:
         msg: "Using Komodo version: {{ _komodo_version }}"
 
+- name: Check if Komodo binary exists
+  ansible.builtin.stat:
+    path: "{{ komodo_bin_path }}"
+  register: _komodo_bin_stat
+  become: true
+
 - name: Check currently installed binary version
   ansible.builtin.command: "{{ komodo_bin_path }} --version"
   register: _current_binary_state
@@ -102,6 +108,7 @@
   failed_when: false
   changed_when: false
   check_mode: false
+  when: _komodo_bin_stat.stat.exists
 
 - name: Parse installed version
   ansible.builtin.set_fact:
@@ -109,6 +116,7 @@
       {{
         (_current_binary_state.stdout | split | last | regex_replace('^v', ''))
         if (
+          _komodo_bin_stat.stat.exists and
           _current_binary_state.rc == 0 and
           _current_binary_state.stdout | default('') | length > 0
         )
