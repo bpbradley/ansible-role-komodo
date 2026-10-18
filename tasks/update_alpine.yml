@@ -6,7 +6,7 @@
 
 - name: Fail if unsupported architecture
   ansible.builtin.fail:
-    msg: "Periphery binaries are not directly built for Alpine, but by an external repository (https://github.com/nano9g/komodo-alpine). To allow for such behaviour, the variable komodo_unofficial needs to be set to true."
+    msg: "Periphery binaries only run for system scope, are not directly built for Alpine, but by an external repository (https://github.com/nano9g/komodo-alpine). To allow for such behaviour, the variable komodo_unofficial needs to be set to true, and komodo_service_scope to system."
   when: (not (komodo_unofficial | bool)) or komodo_service_scope != "system"
 
 - name: Setup Komodo user
