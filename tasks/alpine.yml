@@ -1,0 +1,13 @@
+---
+- name: Ensure loginctl is present
+  ansible.builtin.package:
+    name: elogind
+    state: present
+  become: true
+
+- name: Register the service
+  ansible.builtin.service:
+    name: elogind
+    enabled: true
+    state: started
+

@@ -1,0 +1,11 @@
+#!/sbin/openrc-run
+
+description="Agent to connect with Komodo Core"
+command="{{ komodo_bin_path }}"
+command_args="--config-path {{ komodo_config_path }}"
+command_background=true
+required_dirs=/etc/komodo
+pidfile=/run/periphery.pid
+output_log=/var/log/komodo.log
+output_err=/var/log/komodo.err
+

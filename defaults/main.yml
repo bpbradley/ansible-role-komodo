@@ -181,3 +181,6 @@ komodo_download_source: "github"
 # By default, localhost is used under the assumption it can reach the Komodo Core server.
 # Override this if a different host in your inventory has network access to Core.
 komodo_api_delegate_to: "localhost"
+
+# Variable to allow to download periphery from unofficial repos, when there is no official build, e.g., for Alpine.
+komodo_unofficial: false

@@ -5,12 +5,20 @@
     state: present
   become: true
 
+- name: Alpine specific options
+  ansible.builtin.import_tasks: alpine.yml
+  when: ansible_facts["os_family"] == "Alpine"
+
 - name: Build Komodo user context
   ansible.builtin.import_tasks: _user_ctx.yml
 
-- name: Update Komodo Periphery
+- name: Update Komodo Periphery - Non Alpine
   ansible.builtin.include_tasks: update.yml
-  when: komodo_action in ["install","update"]
+  when: komodo_action in ["install","update"] and ansible_facts["os_family"] != "Alpine"
+
+- name: Update Komodo Periphery - Alpine
+  ansible.builtin.include_tasks: update_alpine.yml
+  when: komodo_action in ["install","update"] and ansible_facts["os_family"] == "Alpine"
 
 - name: Periphery uninstall tasks
   ansible.builtin.include_tasks: uninstall.yml
